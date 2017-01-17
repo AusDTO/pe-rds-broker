@@ -1,0 +1,83 @@
+hash: 81d98c90653587a2a80899d761a4b6eddf5fa5046e51753135f4d201a7eab523
+updated: 2017-01-17T12:09:44.325754267+11:00
+imports:
+- name: github.com/aws/aws-sdk-go
+  version: c3505486c9bc67389575587c2154500864883384
+  subpackages:
+  - aws
+  - aws/awserr
+  - aws/awsutil
+  - aws/client
+  - aws/client/metadata
+  - aws/corehandlers
+  - aws/credentials
+  - aws/credentials/ec2rolecreds
+  - aws/defaults
+  - aws/ec2metadata
+  - aws/request
+  - aws/session
+  - private/endpoints
+  - private/protocol/query
+  - private/protocol/query/queryutil
+  - private/protocol/rest
+  - private/protocol/xml/xmlutil
+  - private/signer/v4
+  - private/waiter
+  - service/iam
+  - service/rds
+- name: github.com/frodenas/brokerapi
+  version: ac1ed76a08954bbd7b40a8794738539404a84313
+  subpackages:
+  - auth
+- name: github.com/go-ini/ini
+  version: 6f66b0e091edb3c7b380f7c4f0f884274d550b67
+- name: github.com/go-sql-driver/mysql
+  version: 527bcd55aab2e53314f1a150922560174b493034
+- name: github.com/gorilla/context
+  version: 215affda49addc4c8ef7e2534915df2c8c35c6cd
+- name: github.com/gorilla/mux
+  version: 8a875a034c69b940914d83ea03d3f1299b4d094b
+- name: github.com/jmespath/go-jmespath
+  version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
+- name: github.com/lib/pq
+  version: ffe986aba3e6cfcded8b06615965941408891ef0
+  subpackages:
+  - oid
+- name: github.com/mitchellh/mapstructure
+  version: 281073eb9eb092240d33ef253c404f1cca550309
+- name: github.com/onsi/ginkgo
+  version: c5c761488350e56a28c4a91da87e5db7020bedc8
+  subpackages:
+  - config
+  - internal/codelocation
+  - internal/containernode
+  - internal/failer
+  - internal/leafnodes
+  - internal/remote
+  - internal/spec
+  - internal/specrunner
+  - internal/suite
+  - internal/testingtproxy
+  - internal/writer
+  - reporters
+  - reporters/stenographer
+  - types
+- name: github.com/onsi/gomega
+  version: 766f4042b942146e90594d145c5071fa92c0aa9a
+  subpackages:
+  - format
+  - gbytes
+  - internal/assertion
+  - internal/asyncassertion
+  - internal/testingtsupport
+  - matchers
+  - matchers/support/goraph/bipartitegraph
+  - matchers/support/goraph/edge
+  - matchers/support/goraph/node
+  - matchers/support/goraph/util
+  - types
+- name: github.com/pivotal-golang/lager
+  version: be52ae622d25728f17aac7330e4565201c19155c
+  subpackages:
+  - lagertest
+testImports: []
