@@ -2,5 +2,6 @@ out
 pkg
 gobin/*
 vendor/
+pe-rds-broker
 
 *\.test
