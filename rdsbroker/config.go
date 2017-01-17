@@ -6,12 +6,12 @@ import (
 )
 
 type Config struct {
-	Region                       string  `json:"region"`
-	DBPrefix                     string  `json:"db_prefix"`
-	AllowUserProvisionParameters bool    `json:"allow_user_provision_parameters"`
-	AllowUserUpdateParameters    bool    `json:"allow_user_update_parameters"`
-	AllowUserBindParameters      bool    `json:"allow_user_bind_parameters"`
-	Catalog                      Catalog `json:"catalog"`
+	Region                       string  `yaml:"region"`
+	DBPrefix                     string  `yaml:"foo"`
+	AllowUserProvisionParameters bool    `yaml:"allow_user_provision_parameters"`
+	AllowUserUpdateParameters    bool    `yaml:"allow_user_update_parameters"`
+	AllowUserBindParameters      bool    `yaml:"allow_user_bind_parameters"`
+	Catalog                      Catalog `yaml:"catalog"`
 }
 
 func (c Config) Validate() error {

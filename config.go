@@ -1,20 +1,21 @@
 package main
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
 
+	"gopkg.in/yaml.v2"
+
 	"github.com/cloudfoundry-community/pe-rds-broker/rdsbroker"
 )
 
 type Config struct {
-	LogLevel  string           `json:"log_level"`
-	Username  string           `json:"username"`
-	Password  string           `json:"password"`
-	RDSConfig rdsbroker.Config `json:"rds_config"`
+	LogLevel  string           `yaml:"log_level"`
+	Username  string           `yaml:"username"`
+	Password  string           `yaml:"password"`
+	RDSConfig rdsbroker.Config `yaml:"rds_config"`
 }
 
 func LoadConfig(configFile string) (config *Config, err error) {
@@ -33,7 +34,7 @@ func LoadConfig(configFile string) (config *Config, err error) {
 		return config, err
 	}
 
-	if err = json.Unmarshal(bytes, &config); err != nil {
+	if err = yaml.Unmarshal(bytes, &config); err != nil {
 		return config, err
 	}
 

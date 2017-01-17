@@ -31,3 +31,4 @@ import:
   version: 766f4042b942146e90594d145c5071fa92c0aa9a
 - package: github.com/pivotal-golang/lager
   version: be52ae622d25728f17aac7330e4565201c19155c
+- package: gopkg.in/yaml.v2
