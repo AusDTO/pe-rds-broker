@@ -18,3 +18,13 @@ type UpdateParameters struct {
 type BindParameters struct {
 	DBName string `mapstructure:"dbname"`
 }
+
+type CredentialsHash struct {
+	Host     string `json:"host,omitempty"`
+	Port     int64  `json:"port,omitempty"`
+	Name     string `json:"name,omitempty"`
+	Username string `json:"username,omitempty"`
+	Password string `json:"password,omitempty"`
+	URI      string `json:"uri,omitempty"`
+	JDBCURI  string `json:"jdbcUrl,omitempty"`
+}

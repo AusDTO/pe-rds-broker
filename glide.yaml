@@ -1,7 +1,7 @@
 package: github.com/cloudfoundry-community/pe-rds-broker
 import:
 - package: github.com/aws/aws-sdk-go
-  version: ^0.10.1
+  version: ^1.0.0
   subpackages:
   - aws
   - private/endpoints
@@ -13,22 +13,14 @@ import:
   - service/rds
   - aws/awserr
   - aws/session
-- package: github.com/frodenas/brokerapi
-  version: ac1ed76a08954bbd7b40a8794738539404a84313
+- package: github.com/pivotal-cf/brokerapi
 - package: github.com/go-sql-driver/mysql
   version: 527bcd55aab2e53314f1a150922560174b493034
-- package: github.com/gorilla/context
-  version: 215affda49addc4c8ef7e2534915df2c8c35c6cd
-- package: github.com/gorilla/mux
-  version: 8a875a034c69b940914d83ea03d3f1299b4d094b
 - package: github.com/lib/pq
   version: ffe986aba3e6cfcded8b06615965941408891ef0
 - package: github.com/mitchellh/mapstructure
   version: 281073eb9eb092240d33ef253c404f1cca550309
 - package: github.com/onsi/ginkgo
-  version: c5c761488350e56a28c4a91da87e5db7020bedc8
 - package: github.com/onsi/gomega
-  version: 766f4042b942146e90594d145c5071fa92c0aa9a
-- package: github.com/pivotal-golang/lager
-  version: be52ae622d25728f17aac7330e4565201c19155c
+- package: code.cloudfoundry.org/lager
 - package: gopkg.in/yaml.v2

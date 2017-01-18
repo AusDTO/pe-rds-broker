@@ -1,14 +1,16 @@
 package rdsbroker
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
+	"errors"
 
-	"github.com/frodenas/brokerapi"
+	"github.com/pivotal-cf/brokerapi"
 	"github.com/mitchellh/mapstructure"
-	"github.com/pivotal-golang/lager"
+	"code.cloudfoundry.org/lager"
 
 	"github.com/cloudfoundry-community/pe-rds-broker/awsrds"
 	"github.com/cloudfoundry-community/pe-rds-broker/sqlengine"
@@ -21,19 +23,19 @@ const defaultPasswordLength = 32
 const instanceIDLogKey = "instance-id"
 const bindingIDLogKey = "binding-id"
 const detailsLogKey = "details"
-const acceptsIncompleteLogKey = "acceptsIncomplete"
+const asyncAllowedLogKey = "async-allowed"
 
-var rdsStatus2State = map[string]string{
-	"available":                    brokerapi.LastOperationSucceeded,
-	"backing-up":                   brokerapi.LastOperationInProgress,
-	"creating":                     brokerapi.LastOperationInProgress,
-	"deleting":                     brokerapi.LastOperationInProgress,
-	"maintenance":                  brokerapi.LastOperationInProgress,
-	"modifying":                    brokerapi.LastOperationInProgress,
-	"rebooting":                    brokerapi.LastOperationInProgress,
-	"renaming":                     brokerapi.LastOperationInProgress,
-	"resetting-master-credentials": brokerapi.LastOperationInProgress,
-	"upgrading":                    brokerapi.LastOperationInProgress,
+var rdsStatus2State = map[string]brokerapi.LastOperationState{
+	"available":                    brokerapi.Succeeded,
+	"backing-up":                   brokerapi.InProgress,
+	"creating":                     brokerapi.InProgress,
+	"deleting":                     brokerapi.InProgress,
+	"maintenance":                  brokerapi.InProgress,
+	"modifying":                    brokerapi.InProgress,
+	"rebooting":                    brokerapi.InProgress,
+	"renaming":                     brokerapi.InProgress,
+	"resetting-master-credentials": brokerapi.InProgress,
+	"upgrading":                    brokerapi.InProgress,
 }
 
 type RDSBroker struct {
@@ -68,56 +70,57 @@ func New(
 	}
 }
 
-func (b *RDSBroker) Services() brokerapi.CatalogResponse {
-	catalogResponse := brokerapi.CatalogResponse{}
+func (b *RDSBroker) Services(context context.Context) []brokerapi.Service {
+	var services []brokerapi.Service
 
-	brokerCatalog, err := json.Marshal(b.catalog)
+	/* Service and brokerapi.Service are slightly different data structures
+	 * The easiest way to convert is via JSON
+	 *
+	 * TODO: Find a better way
+	 */
+	servicesStr, err := json.Marshal(b.catalog.Services)
 	if err != nil {
 		b.logger.Error("marshal-error", err)
-		return catalogResponse
+		return services
 	}
 
-	apiCatalog := brokerapi.Catalog{}
-	if err = json.Unmarshal(brokerCatalog, &apiCatalog); err != nil {
+	if err = json.Unmarshal(servicesStr, &services); err != nil {
 		b.logger.Error("unmarshal-error", err)
-		return catalogResponse
+		return services
 	}
-
-	catalogResponse.Services = apiCatalog.Services
-
-	return catalogResponse
+	return services
 }
 
-func (b *RDSBroker) Provision(instanceID string, details brokerapi.ProvisionDetails, acceptsIncomplete bool) (brokerapi.ProvisioningResponse, bool, error) {
+func (b *RDSBroker) Provision(context context.Context, instanceID string, details brokerapi.ProvisionDetails, asyncAllowed bool) (brokerapi.ProvisionedServiceSpec, error) {
 	b.logger.Debug("provision", lager.Data{
-		instanceIDLogKey:        instanceID,
-		detailsLogKey:           details,
-		acceptsIncompleteLogKey: acceptsIncomplete,
+		instanceIDLogKey:   instanceID,
+		detailsLogKey:      details,
+		asyncAllowedLogKey: asyncAllowed,
 	})
 
-	provisioningResponse := brokerapi.ProvisioningResponse{}
+	provisionSpec := brokerapi.ProvisionedServiceSpec{IsAsync: true}
 
-	if !acceptsIncomplete {
-		return provisioningResponse, false, brokerapi.ErrAsyncRequired
+	if !asyncAllowed {
+		return provisionSpec, brokerapi.ErrAsyncRequired
 	}
 
 	provisionParameters := ProvisionParameters{}
 	if b.allowUserProvisionParameters {
-		if err := mapstructure.Decode(details.Parameters, &provisionParameters); err != nil {
-			return provisioningResponse, false, err
+		if err := json.Unmarshal(details.RawParameters, &provisionParameters); err != nil {
+			return provisionSpec, err
 		}
 	}
 
 	servicePlan, ok := b.catalog.FindServicePlan(details.PlanID)
 	if !ok {
-		return provisioningResponse, false, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
+		return provisionSpec, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
 	}
 
 	var err error
 	if strings.ToLower(servicePlan.RDSProperties.Engine) == "aurora" {
 		createDBCluster := b.createDBCluster(instanceID, servicePlan, provisionParameters, details)
 		if err = b.dbCluster.Create(b.dbClusterIdentifier(instanceID), *createDBCluster); err != nil {
-			return provisioningResponse, false, err
+			return provisionSpec, err
 		}
 		defer func() {
 			if err != nil {
@@ -128,76 +131,80 @@ func (b *RDSBroker) Provision(instanceID string, details brokerapi.ProvisionDeta
 
 	createDBInstance := b.createDBInstance(instanceID, servicePlan, provisionParameters, details)
 	if err = b.dbInstance.Create(b.dbInstanceIdentifier(instanceID), *createDBInstance); err != nil {
-		return provisioningResponse, false, err
+		return provisionSpec, err
 	}
 
-	return provisioningResponse, true, nil
+	return provisionSpec, nil
 }
 
-func (b *RDSBroker) Update(instanceID string, details brokerapi.UpdateDetails, acceptsIncomplete bool) (bool, error) {
+func (b *RDSBroker) Update(context context.Context, instanceID string, details brokerapi.UpdateDetails, asyncAllowed bool) (brokerapi.UpdateServiceSpec, error) {
 	b.logger.Debug("update", lager.Data{
-		instanceIDLogKey:        instanceID,
-		detailsLogKey:           details,
-		acceptsIncompleteLogKey: acceptsIncomplete,
+		instanceIDLogKey:   instanceID,
+		detailsLogKey:      details,
+		asyncAllowedLogKey: asyncAllowed,
 	})
 
-	if !acceptsIncomplete {
-		return false, brokerapi.ErrAsyncRequired
+	updateSpec := brokerapi.UpdateServiceSpec{IsAsync: true}
+
+	if !asyncAllowed {
+		return updateSpec, brokerapi.ErrAsyncRequired
 	}
 
 	updateParameters := UpdateParameters{}
 	if b.allowUserUpdateParameters {
 		if err := mapstructure.Decode(details.Parameters, &updateParameters); err != nil {
-			return false, err
+			return updateSpec, err
 		}
 	}
 
 	service, ok := b.catalog.FindService(details.ServiceID)
 	if !ok {
-		return false, fmt.Errorf("Service '%s' not found", details.ServiceID)
+		return updateSpec, fmt.Errorf("Service '%s' not found", details.ServiceID)
 	}
 
 	if !service.PlanUpdateable {
-		return false, brokerapi.ErrInstanceNotUpdateable
+		return updateSpec, brokerapi.ErrPlanChangeNotSupported
 	}
 
 	servicePlan, ok := b.catalog.FindServicePlan(details.PlanID)
 	if !ok {
-		return false, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
+		return updateSpec, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
 	}
 
 	if strings.ToLower(servicePlan.RDSProperties.Engine) == "aurora" {
 		modifyDBCluster := b.modifyDBCluster(instanceID, servicePlan, updateParameters, details)
 		if err := b.dbCluster.Modify(b.dbClusterIdentifier(instanceID), *modifyDBCluster, updateParameters.ApplyImmediately); err != nil {
-			return false, err
+			return updateSpec, err
 		}
 	}
 
 	modifyDBInstance := b.modifyDBInstance(instanceID, servicePlan, updateParameters, details)
 	if err := b.dbInstance.Modify(b.dbInstanceIdentifier(instanceID), *modifyDBInstance, updateParameters.ApplyImmediately); err != nil {
 		if err == awsrds.ErrDBInstanceDoesNotExist {
-			return false, brokerapi.ErrInstanceDoesNotExist
+			return updateSpec, brokerapi.ErrInstanceDoesNotExist
 		}
-		return false, err
+		return updateSpec, err
 	}
 
-	return true, nil
+	return updateSpec, nil
 }
 
-func (b *RDSBroker) Deprovision(instanceID string, details brokerapi.DeprovisionDetails, acceptsIncomplete bool) (bool, error) {
+func (b *RDSBroker) Deprovision(context context.Context, instanceID string, details brokerapi.DeprovisionDetails, asyncAllowed bool) (brokerapi.DeprovisionServiceSpec, error) {
 	b.logger.Debug("deprovision", lager.Data{
-		instanceIDLogKey:        instanceID,
-		detailsLogKey:           details,
-		acceptsIncompleteLogKey: acceptsIncomplete,
+		instanceIDLogKey:   instanceID,
+		detailsLogKey:      details,
+		asyncAllowedLogKey: asyncAllowed,
 	})
 
-	if !acceptsIncomplete {
-		return false, brokerapi.ErrAsyncRequired
+	deprovisionSpec := brokerapi.DeprovisionServiceSpec{IsAsync: true}
+
+	if !asyncAllowed {
+		return deprovisionSpec, brokerapi.ErrAsyncRequired
 	}
 
 	servicePlan, ok := b.catalog.FindServicePlan(details.PlanID)
 	if !ok {
-		return false, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
+		return deprovisionSpec, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
 	}
 
 	skipDBInstanceFinalSnapshot := servicePlan.RDSProperties.SkipFinalSnapshot
@@ -207,46 +214,46 @@ func (b *RDSBroker) Deprovision(instanceID string, details brokerapi.Deprovision
 
 	if err := b.dbInstance.Delete(b.dbInstanceIdentifier(instanceID), skipDBInstanceFinalSnapshot); err != nil {
 		if err == awsrds.ErrDBInstanceDoesNotExist {
-			return false, brokerapi.ErrInstanceDoesNotExist
+			return deprovisionSpec, brokerapi.ErrInstanceDoesNotExist
 		}
-		return false, err
+		return deprovisionSpec, err
 	}
 
 	if strings.ToLower(servicePlan.RDSProperties.Engine) == "aurora" {
 		b.dbCluster.Delete(b.dbClusterIdentifier(instanceID), servicePlan.RDSProperties.SkipFinalSnapshot)
 	}
 
-	return true, nil
+	return deprovisionSpec, nil
 }
 
-func (b *RDSBroker) Bind(instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.BindingResponse, error) {
+func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, details brokerapi.BindDetails) (brokerapi.Binding, error) {
 	b.logger.Debug("bind", lager.Data{
 		instanceIDLogKey: instanceID,
 		bindingIDLogKey:  bindingID,
 		detailsLogKey:    details,
 	})
 
-	bindingResponse := brokerapi.BindingResponse{}
+	binding := brokerapi.Binding{}
 
 	bindParameters := BindParameters{}
 	if b.allowUserBindParameters {
 		if err := mapstructure.Decode(details.Parameters, &bindParameters); err != nil {
-			return bindingResponse, err
+			return binding, err
 		}
 	}
 
 	service, ok := b.catalog.FindService(details.ServiceID)
 	if !ok {
-		return bindingResponse, fmt.Errorf("Service '%s' not found", details.ServiceID)
+		return binding, fmt.Errorf("Service '%s' not found", details.ServiceID)
 	}
 
 	if !service.Bindable {
-		return bindingResponse, brokerapi.ErrInstanceNotBindable
+		return binding, errors.New("Service is not bindable")
 	}
 
 	servicePlan, ok := b.catalog.FindServicePlan(details.PlanID)
 	if !ok {
-		return bindingResponse, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
+		return binding, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
 	}
 
 	var dbAddress, dbName, masterUsername string
@@ -255,9 +262,9 @@ func (b *RDSBroker) Bind(instanceID, bindingID string, details brokerapi.BindDet
 		dbClusterDetails, err := b.dbCluster.Describe(b.dbClusterIdentifier(instanceID))
 		if err != nil {
 			if err == awsrds.ErrDBInstanceDoesNotExist {
-				return bindingResponse, brokerapi.ErrInstanceDoesNotExist
+				return binding, brokerapi.ErrInstanceDoesNotExist
 			}
-			return bindingResponse, err
+			return binding, err
 		}
 
 		dbAddress = dbClusterDetails.Endpoint
@@ -272,9 +279,9 @@ func (b *RDSBroker) Bind(instanceID, bindingID string, details brokerapi.BindDet
 		dbInstanceDetails, err := b.dbInstance.Describe(b.dbInstanceIdentifier(instanceID))
 		if err != nil {
 			if err == awsrds.ErrDBInstanceDoesNotExist {
-				return bindingResponse, brokerapi.ErrInstanceDoesNotExist
+				return binding, brokerapi.ErrInstanceDoesNotExist
 			}
-			return bindingResponse, err
+			return binding, err
 		}
 
 		dbAddress = dbInstanceDetails.Address
@@ -289,11 +296,11 @@ func (b *RDSBroker) Bind(instanceID, bindingID string, details brokerapi.BindDet
 
 	sqlEngine, err := b.sqlProvider.GetSQLEngine(servicePlan.RDSProperties.Engine)
 	if err != nil {
-		return bindingResponse, err
+		return binding, err
 	}
 
 	if err = sqlEngine.Open(dbAddress, dbPort, dbName, masterUsername, b.masterPassword(instanceID)); err != nil {
-		return bindingResponse, err
+		return binding, err
 	}
 	defer sqlEngine.Close()
 
@@ -303,19 +310,19 @@ func (b *RDSBroker) Bind(instanceID, bindingID string, details brokerapi.BindDet
 	if bindParameters.DBName != "" {
 		dbName = bindParameters.DBName
 		if err = sqlEngine.CreateDB(dbName); err != nil {
-			return bindingResponse, err
+			return binding, err
 		}
 	}
 
 	if err = sqlEngine.CreateUser(dbUsername, dbPassword); err != nil {
-		return bindingResponse, err
+		return binding, err
 	}
 
 	if err = sqlEngine.GrantPrivileges(dbName, dbUsername); err != nil {
-		return bindingResponse, err
+		return binding, err
 	}
 
-	bindingResponse.Credentials = &brokerapi.CredentialsHash{
+	binding.Credentials = &CredentialsHash{
 		Host:     dbAddress,
 		Port:     dbPort,
 		Name:     dbName,
@@ -325,10 +332,10 @@ func (b *RDSBroker) Bind(instanceID, bindingID string, details brokerapi.BindDet
 		JDBCURI:  sqlEngine.JDBCURI(dbAddress, dbPort, dbName, dbUsername, dbPassword),
 	}
 
-	return bindingResponse, nil
+	return binding, nil
 }
 
-func (b *RDSBroker) Unbind(instanceID, bindingID string, details brokerapi.UnbindDetails) error {
+func (b *RDSBroker) Unbind(context context.Context, instanceID, bindingID string, details brokerapi.UnbindDetails) error {
 	b.logger.Debug("unbind", lager.Data{
 		instanceIDLogKey: instanceID,
 		bindingIDLogKey:  bindingID,
@@ -426,33 +433,33 @@ func (b *RDSBroker) Unbind(instanceID, bindingID string, details brokerapi.Unbin
 	return nil
 }
 
-func (b *RDSBroker) LastOperation(instanceID string) (brokerapi.LastOperationResponse, error) {
+func (b *RDSBroker) LastOperation(context context.Context, instanceID, operationData string) (brokerapi.LastOperation, error) {
 	b.logger.Debug("last-operation", lager.Data{
 		instanceIDLogKey: instanceID,
 	})
 
-	lastOperationResponse := brokerapi.LastOperationResponse{State: brokerapi.LastOperationFailed}
+	lastOperation := brokerapi.LastOperation{State: brokerapi.Failed}
 
 	dbInstanceDetails, err := b.dbInstance.Describe(b.dbInstanceIdentifier(instanceID))
 	if err != nil {
 		if err == awsrds.ErrDBInstanceDoesNotExist {
-			return lastOperationResponse, brokerapi.ErrInstanceDoesNotExist
+			return lastOperation, brokerapi.ErrInstanceDoesNotExist
 		}
-		return lastOperationResponse, err
+		return lastOperation, err
 	}
 
-	lastOperationResponse.Description = fmt.Sprintf("DB Instance '%s' status is '%s'", b.dbInstanceIdentifier(instanceID), dbInstanceDetails.Status)
+	lastOperation.Description = fmt.Sprintf("DB Instance '%s' status is '%s'", b.dbInstanceIdentifier(instanceID), dbInstanceDetails.Status)
 
 	if state, ok := rdsStatus2State[dbInstanceDetails.Status]; ok {
-		lastOperationResponse.State = state
+		lastOperation.State = state
 	}
 
-	if lastOperationResponse.State == brokerapi.LastOperationSucceeded && dbInstanceDetails.PendingModifications {
-		lastOperationResponse.State = brokerapi.LastOperationInProgress
-		lastOperationResponse.Description = fmt.Sprintf("DB Instance '%s' has pending modifications", b.dbInstanceIdentifier(instanceID))
+	if lastOperation.State == brokerapi.Succeeded && dbInstanceDetails.PendingModifications {
+		lastOperation.State = brokerapi.InProgress
+		lastOperation.Description = fmt.Sprintf("DB Instance '%s' has pending modifications", b.dbInstanceIdentifier(instanceID))
 	}
 
-	return lastOperationResponse, nil
+	return lastOperation, nil
 }
 
 func (b *RDSBroker) dbClusterIdentifier(instanceID string) string {

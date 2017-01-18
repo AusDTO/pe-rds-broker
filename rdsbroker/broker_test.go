@@ -8,9 +8,9 @@ import (
 
 	. "github.com/cloudfoundry-community/pe-rds-broker/rdsbroker"
 
-	"github.com/frodenas/brokerapi"
-	"github.com/pivotal-golang/lager"
-	"github.com/pivotal-golang/lager/lagertest"
+	"github.com/pivotal-cf/brokerapi"
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
 
 	"github.com/cloudfoundry-community/pe-rds-broker/awsrds"
 	rdsfake "github.com/cloudfoundry-community/pe-rds-broker/awsrds/fakes"
