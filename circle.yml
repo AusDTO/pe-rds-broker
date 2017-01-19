@@ -1,0 +1,20 @@
+machine:
+  environment:
+    WS: /home/ubuntu/.go_workspace/src/github.com/AusDTO/pe-rds-broker
+
+dependencies:
+  cache_directories:
+    - "vendor"
+    - "glide-cache"
+  override:
+    - mkdir -p glide-cache
+    - test -e glide-cache/glide || curl https://glide.sh/get | GOBIN=glide-cache PATH=glide-cache:"$PATH" sh
+    # glide needs to be inside $GOPATH to work correctly
+    - mkdir -p $(dirname $WS)
+    - ln -sf `pwd` $WS
+    - cd $WS && glide-cache/glide install
+    - cd $WS && go build -v
+
+test:
+  override:
+    - cd $WS && go test -v -ginkgo.v -race
