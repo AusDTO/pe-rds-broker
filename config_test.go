@@ -6,6 +6,8 @@ import (
 
 	. "github.com/cloudfoundry-community/pe-rds-broker"
 
+	"io/ioutil"
+	"gopkg.in/yaml.v2"
 	"github.com/cloudfoundry-community/pe-rds-broker/rdsbroker"
 )
 
@@ -64,6 +66,24 @@ var _ = Describe("Config", func() {
 			err := config.Validate()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Validating RDS configuration"))
+		})
+	})
+
+	Describe("LoadConfig", func() {
+		var (
+			configFile = "config-sample.yml"
+		)
+
+		It("parses sample config", func() {
+			Expect(LoadConfig(configFile)).NotTo(BeZero())
+		})
+
+		It("parses all information in sample config", func() {
+			config, err := LoadConfig(configFile)
+			Expect(err).NotTo(HaveOccurred())
+			configStr, err := ioutil.ReadFile(configFile)
+			Expect(err).NotTo(HaveOccurred())
+			Expect(yaml.Marshal(config)).To(MatchYAML(configStr))
 		})
 	})
 })
