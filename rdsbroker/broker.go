@@ -12,9 +12,9 @@ import (
 	"github.com/mitchellh/mapstructure"
 	"github.com/pivotal-cf/brokerapi"
 
-	"github.com/cloudfoundry-community/pe-rds-broker/awsrds"
-	"github.com/cloudfoundry-community/pe-rds-broker/sqlengine"
-	"github.com/cloudfoundry-community/pe-rds-broker/utils"
+	"github.com/AusDTO/pe-rds-broker/awsrds"
+	"github.com/AusDTO/pe-rds-broker/sqlengine"
+	"github.com/AusDTO/pe-rds-broker/utils"
 )
 
 const defaultUsernameLength = 16

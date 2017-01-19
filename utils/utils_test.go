@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/cloudfoundry-community/pe-rds-broker/utils"
+	. "github.com/AusDTO/pe-rds-broker/utils"
 )
 
 var _ = Describe("RandomAlphaNum", func() {

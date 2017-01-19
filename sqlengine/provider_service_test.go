@@ -4,7 +4,7 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/cloudfoundry-community/pe-rds-broker/sqlengine"
+	. "github.com/AusDTO/pe-rds-broker/sqlengine"
 
 	"code.cloudfoundry.org/lager"
 )

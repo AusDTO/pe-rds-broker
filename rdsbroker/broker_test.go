@@ -6,15 +6,15 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/cloudfoundry-community/pe-rds-broker/rdsbroker"
+	. "github.com/AusDTO/pe-rds-broker/rdsbroker"
 
 	"code.cloudfoundry.org/lager"
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/pivotal-cf/brokerapi"
 
-	"github.com/cloudfoundry-community/pe-rds-broker/awsrds"
-	rdsfake "github.com/cloudfoundry-community/pe-rds-broker/awsrds/fakes"
-	sqlfake "github.com/cloudfoundry-community/pe-rds-broker/sqlengine/fakes"
+	"github.com/AusDTO/pe-rds-broker/awsrds"
+	rdsfake "github.com/AusDTO/pe-rds-broker/awsrds/fakes"
+	sqlfake "github.com/AusDTO/pe-rds-broker/sqlengine/fakes"
 )
 
 var _ = Describe("RDS Broker", func() {

@@ -8,7 +8,7 @@ import (
 
 	"gopkg.in/yaml.v2"
 
-	"github.com/cloudfoundry-community/pe-rds-broker/rdsbroker"
+	"github.com/AusDTO/pe-rds-broker/rdsbroker"
 )
 
 type Config struct {

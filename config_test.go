@@ -4,9 +4,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/cloudfoundry-community/pe-rds-broker"
+	. "github.com/AusDTO/pe-rds-broker"
 
-	"github.com/cloudfoundry-community/pe-rds-broker/rdsbroker"
+	"github.com/AusDTO/pe-rds-broker/rdsbroker"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 )

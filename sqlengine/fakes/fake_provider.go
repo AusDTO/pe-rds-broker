@@ -1,7 +1,7 @@
 package fakes
 
 import (
-	"github.com/cloudfoundry-community/pe-rds-broker/sqlengine"
+	"github.com/AusDTO/pe-rds-broker/sqlengine"
 )
 
 type FakeProvider struct {

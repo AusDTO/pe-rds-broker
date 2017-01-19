@@ -15,9 +15,9 @@ import (
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/pivotal-cf/brokerapi"
 
-	"github.com/cloudfoundry-community/pe-rds-broker/awsrds"
-	"github.com/cloudfoundry-community/pe-rds-broker/rdsbroker"
-	"github.com/cloudfoundry-community/pe-rds-broker/sqlengine"
+	"github.com/AusDTO/pe-rds-broker/awsrds"
+	"github.com/AusDTO/pe-rds-broker/rdsbroker"
+	"github.com/AusDTO/pe-rds-broker/sqlengine"
 )
 
 var (
