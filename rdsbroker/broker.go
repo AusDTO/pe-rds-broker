@@ -3,14 +3,14 @@ package rdsbroker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strings"
 	"time"
-	"errors"
 
-	"github.com/pivotal-cf/brokerapi"
-	"github.com/mitchellh/mapstructure"
 	"code.cloudfoundry.org/lager"
+	"github.com/mitchellh/mapstructure"
+	"github.com/pivotal-cf/brokerapi"
 
 	"github.com/cloudfoundry-community/pe-rds-broker/awsrds"
 	"github.com/cloudfoundry-community/pe-rds-broker/sqlengine"

@@ -6,9 +6,9 @@ import (
 
 	. "github.com/cloudfoundry-community/pe-rds-broker"
 
-	"io/ioutil"
-	"gopkg.in/yaml.v2"
 	"github.com/cloudfoundry-community/pe-rds-broker/rdsbroker"
+	"gopkg.in/yaml.v2"
+	"io/ioutil"
 )
 
 var _ = Describe("Config", func() {

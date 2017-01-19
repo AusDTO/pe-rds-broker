@@ -5,9 +5,9 @@ import (
 	"strings"
 )
 
-/* As much as it would be nice to use brokerapi.Service here rather than redefining 
+/* As much as it would be nice to use brokerapi.Service here rather than redefining
  * the whole structure ourselves, the version in brokerapi is specifically
- * replicating the structure sent to cloud foundry. And we want to add a few more 
+ * replicating the structure sent to cloud foundry. And we want to add a few more
  * options for defining the RDS properties. And brokerapi doesn't let us dump it in
  * metadata.
  *
