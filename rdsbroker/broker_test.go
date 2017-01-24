@@ -143,38 +143,36 @@ var _ = Describe("RDS Broker", func() {
 
 	var _ = Describe("Services", func() {
 		var (
-			properCatalogResponse brokerapi.CatalogResponse
+			properCatalogResponse []brokerapi.Service
 		)
 
 		BeforeEach(func() {
-			properCatalogResponse = brokerapi.CatalogResponse{
-				Services: []brokerapi.Service{
-					brokerapi.Service{
-						ID:             "Service-1",
-						Name:           "Service 1",
-						Description:    "This is the Service 1",
-						Bindable:       serviceBindable,
-						PlanUpdatable: planUpdateable,
-						Plans: []brokerapi.ServicePlan{
-							brokerapi.ServicePlan{
-								ID:          "Plan-1",
-								Name:        "Plan 1",
-								Description: "This is the Plan 1",
-							},
+			properCatalogResponse = []brokerapi.Service{
+				brokerapi.Service{
+					ID:             "Service-1",
+					Name:           "Service 1",
+					Description:    "This is the Service 1",
+					Bindable:       serviceBindable,
+					PlanUpdatable: planUpdateable,
+					Plans: []brokerapi.ServicePlan{
+						brokerapi.ServicePlan{
+							ID:          "Plan-1",
+							Name:        "Plan 1",
+							Description: "This is the Plan 1",
 						},
 					},
-					brokerapi.Service{
-						ID:             "Service-2",
-						Name:           "Service 2",
-						Description:    "This is the Service 2",
-						Bindable:       serviceBindable,
-						PlanUpdatable: planUpdateable,
-						Plans: []brokerapi.ServicePlan{
-							brokerapi.ServicePlan{
-								ID:          "Plan-2",
-								Name:        "Plan 2",
-								Description: "This is the Plan 2",
-							},
+				},
+				brokerapi.Service{
+					ID:             "Service-2",
+					Name:           "Service 2",
+					Description:    "This is the Service 2",
+					Bindable:       serviceBindable,
+					PlanUpdatable: planUpdateable,
+					Plans: []brokerapi.ServicePlan{
+						brokerapi.ServicePlan{
+							ID:          "Plan-2",
+							Name:        "Plan 2",
+							Description: "This is the Plan 2",
 						},
 					},
 				},
@@ -202,7 +200,7 @@ var _ = Describe("RDS Broker", func() {
 				PlanID:           "Plan-1",
 				ServiceID:        "Service-1",
 				SpaceGUID:        "space-id",
-				RawParameters:    json.RawMessage(""),
+				RawParameters:    json.RawMessage("{}"),
 			}
 			acceptsIncomplete = true
 
@@ -857,7 +855,7 @@ var _ = Describe("RDS Broker", func() {
 			It("returns the proper error", func() {
 				_, err := Provision()
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("'backup_retention_period' expected type 'int64', got unconvertible type 'string'"))
+				Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal string into Go value of type int64"))
 			})
 
 			Context("and user provision parameters are not allowed", func() {

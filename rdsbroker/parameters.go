@@ -1,11 +1,16 @@
 package rdsbroker
 
+/* Currently the provision parameters are a json.RawMessage in brokerapi
+ * while the update and bind parameters are a map[string]interface{}
+ * There is some interest in changing everything to json.RawMessage
+ * https://github.com/pivotal-cf/brokerapi/issues/36
+ */
 type ProvisionParameters struct {
-	BackupRetentionPeriod      int64  `mapstructure:"backup_retention_period"`
-	CharacterSetName           string `mapstructure:"character_set_name"`
-	DBName                     string `mapstructure:"dbname"`
-	PreferredBackupWindow      string `mapstructure:"preferred_backup_window"`
-	PreferredMaintenanceWindow string `mapstructure:"preferred_maintenance_window"`
+	BackupRetentionPeriod      int64  `json:"backup_retention_period"`
+	CharacterSetName           string `json:"character_set_name"`
+	DBName                     string `json:"dbname"`
+	PreferredBackupWindow      string `json:"preferred_backup_window"`
+	PreferredMaintenanceWindow string `json:"preferred_maintenance_window"`
 }
 
 type UpdateParameters struct {

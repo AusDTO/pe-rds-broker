@@ -18,80 +18,80 @@ type Catalog struct {
 }
 
 type Service struct {
-	ID              string           `yaml:"id"`
-	Name            string           `yaml:"name"`
-	Description     string           `yaml:"description"`
-	Bindable        bool             `yaml:"bindable,omitempty"`
-	Tags            []string         `yaml:"tags,omitempty"`
-	Metadata        *ServiceMetadata `yaml:"metadata,omitempty"`
-	Requires        []string         `yaml:"requires,omitempty"`
-	PlanUpdateable  bool             `yaml:"plan_updateable"`
-	Plans           []ServicePlan    `yaml:"plans,omitempty"`
-	DashboardClient *DashboardClient `yaml:"dashboard_client,omitempty"`
+	ID              string           `json:"id" yaml:"id"`
+	Name            string           `json:"name" yaml:"name"`
+	Description     string           `json:"description" yaml:"description"`
+	Bindable        bool             `json:"bindable,omitempty" yaml:"bindable,omitempty"`
+	Tags            []string         `json:"tags,omitempty" yaml:"tags,omitempty"`
+	Metadata        *ServiceMetadata `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Requires        []string         `json:"requires,omitempty" yaml:"requires,omitempty"`
+	PlanUpdateable  bool             `json:"plan_updateable" yaml:"plan_updateable"`
+	Plans           []ServicePlan    `json:"plans,omitempty" yaml:"plans,omitempty"`
+	DashboardClient *DashboardClient `json:"dashboard_client,omitempty" yaml:"dashboard_client,omitempty"`
 }
 
 type ServiceMetadata struct {
-	DisplayName         string `yaml:"displayName,omitempty"`
-	ImageURL            string `yaml:"imageUrl,omitempty"`
-	LongDescription     string `yaml:"longDescription,omitempty"`
-	ProviderDisplayName string `yaml:"providerDisplayName,omitempty"`
-	DocumentationURL    string `yaml:"documentationUrl,omitempty"`
-	SupportURL          string `yaml:"supportUrl,omitempty"`
+	DisplayName         string `json:"displayName,omitempty" yaml:"displayName,omitempty"`
+	ImageURL            string `json:"imageUrl,omitempty" yaml:"imageUrl,omitempty"`
+	LongDescription     string `json:"longDescription,omitempty" yaml:"longDescription,omitempty"`
+	ProviderDisplayName string `json:"providerDisplayName,omitempty" yaml:"providerDisplayName,omitempty"`
+	DocumentationURL    string `json:"documentationUrl,omitempty" yaml:"documentationUrl,omitempty"`
+	SupportURL          string `json:"supportUrl,omitempty" yaml:"supportUrl,omitempty"`
 }
 
 type ServicePlan struct {
-	ID            string               `yaml:"id"`
-	Name          string               `yaml:"name"`
-	Description   string               `yaml:"description"`
-	Metadata      *ServicePlanMetadata `yaml:"metadata,omitempty"`
-	Free          bool                 `yaml:"free"`
-	RDSProperties RDSProperties        `yaml:"rds_properties,omitempty"`
+	ID            string               `json:"id" yaml:"id"`
+	Name          string               `json:"name" yaml:"name"`
+	Description   string               `json:"description" yaml:"description"`
+	Metadata      *ServicePlanMetadata `json:"metadata,omitempty" yaml:"metadata,omitempty"`
+	Free          *bool                `json:"free" yaml:"free"`
+	RDSProperties RDSProperties        `json:"rds_properties,omitempty" yaml:"rds_properties,omitempty"`
 }
 
 type ServicePlanMetadata struct {
-	Bullets     []string `yaml:"bullets,omitempty"`
-	Costs       []Cost   `yaml:"costs,omitempty"`
-	DisplayName string   `yaml:"displayName,omitempty"`
+	Bullets     []string `json:"bullets,omitempty" yaml:"bullets,omitempty"`
+	Costs       []Cost   `json:"costs,omitempty" yaml:"costs,omitempty"`
+	DisplayName string   `json:"displayName,omitempty" yaml:"displayName,omitempty"`
 }
 
 type DashboardClient struct {
-	ID          string `yaml:"id,omitempty"`
-	Secret      string `yaml:"secret,omitempty"`
-	RedirectURI string `yaml:"redirect_uri,omitempty"`
+	ID          string `json:"id,omitempty" yaml:"id,omitempty"`
+	Secret      string `json:"secret,omitempty" yaml:"secret,omitempty"`
+	RedirectURI string `json:"redirect_uri,omitempty" yaml:"redirect_uri,omitempty"`
 }
 
 type Cost struct {
-	Amount map[string]interface{} `yaml:"amount,omitempty"`
-	Unit   string                 `yaml:"unit,omitempty"`
+	Amount map[string]interface{} `json:"amount,omitempty" yaml:"amount,omitempty"`
+	Unit   string                 `json:"unit,omitempty" yaml:"unit,omitempty"`
 }
 
 type RDSProperties struct {
-	DBInstanceClass             string   `yaml:"db_instance_class"`
-	Engine                      string   `yaml:"engine"`
-	EngineVersion               string   `yaml:"engine_version"`
-	AllocatedStorage            int64    `yaml:"allocated_storage"`
-	AutoMinorVersionUpgrade     bool     `yaml:"auto_minor_version_upgrade,omitempty"`
-	AvailabilityZone            string   `yaml:"availability_zone,omitempty"`
-	BackupRetentionPeriod       int64    `yaml:"backup_retention_period,omitempty"`
-	CharacterSetName            string   `yaml:"character_set_name,omitempty"`
-	DBParameterGroupName        string   `yaml:"db_parameter_group_name,omitempty"`
-	DBClusterParameterGroupName string   `yaml:"db_cluster_parameter_group_name,omitempty"`
-	DBSecurityGroups            []string `yaml:"db_security_groups,omitempty"`
-	DBSubnetGroupName           string   `yaml:"db_subnet_group_name,omitempty"`
-	LicenseModel                string   `yaml:"license_model,omitempty"`
-	MultiAZ                     bool     `yaml:"multi_az,omitempty"`
-	OptionGroupName             string   `yaml:"option_group_name,omitempty"`
-	Port                        int64    `yaml:"port,omitempty"`
-	PreferredBackupWindow       string   `yaml:"preferred_backup_window,omitempty"`
-	PreferredMaintenanceWindow  string   `yaml:"preferred_maintenance_window,omitempty"`
-	PubliclyAccessible          bool     `yaml:"publicly_accessible,omitempty"`
-	StorageEncrypted            bool     `yaml:"storage_encrypted,omitempty"`
-	KmsKeyID                    string   `yaml:"kms_key_id,omitempty"`
-	StorageType                 string   `yaml:"storage_type,omitempty"`
-	Iops                        int64    `yaml:"iops,omitempty"`
-	VpcSecurityGroupIds         []string `yaml:"vpc_security_group_ids,omitempty"`
-	CopyTagsToSnapshot          bool     `yaml:"copy_tags_to_snapshot,omitempty"`
-	SkipFinalSnapshot           bool     `yaml:"skip_final_snapshot,omitempty"`
+	DBInstanceClass             string   `json:"db_instance_class" yaml:"db_instance_class"`
+	Engine                      string   `json:"engine" yaml:"engine"`
+	EngineVersion               string   `json:"engine_version" yaml:"engine_version"`
+	AllocatedStorage            int64    `json:"allocated_storage" yaml:"allocated_storage"`
+	AutoMinorVersionUpgrade     bool     `json:"auto_minor_version_upgrade,omitempty" yaml:"auto_minor_version_upgrade,omitempty"`
+	AvailabilityZone            string   `json:"availability_zone,omitempty" yaml:"availability_zone,omitempty"`
+	BackupRetentionPeriod       int64    `json:"backup_retention_period,omitempty" yaml:"backup_retention_period,omitempty"`
+	CharacterSetName            string   `json:"character_set_name,omitempty" yaml:"character_set_name,omitempty"`
+	DBParameterGroupName        string   `json:"db_parameter_group_name,omitempty" yaml:"db_parameter_group_name,omitempty"`
+	DBClusterParameterGroupName string   `json:"db_cluster_parameter_group_name,omitempty" yaml:"db_cluster_parameter_group_name,omitempty"`
+	DBSecurityGroups            []string `json:"db_security_groups,omitempty" yaml:"db_security_groups,omitempty"`
+	DBSubnetGroupName           string   `json:"db_subnet_group_name,omitempty" yaml:"db_subnet_group_name,omitempty"`
+	LicenseModel                string   `json:"license_model,omitempty" yaml:"license_model,omitempty"`
+	MultiAZ                     bool     `json:"multi_az,omitempty" yaml:"multi_az,omitempty"`
+	OptionGroupName             string   `json:"option_group_name,omitempty" yaml:"option_group_name,omitempty"`
+	Port                        int64    `json:"port,omitempty" yaml:"port,omitempty"`
+	PreferredBackupWindow       string   `json:"preferred_backup_window,omitempty" yaml:"preferred_backup_window,omitempty"`
+	PreferredMaintenanceWindow  string   `json:"preferred_maintenance_window,omitempty" yaml:"preferred_maintenance_window,omitempty"`
+	PubliclyAccessible          bool     `json:"publicly_accessible,omitempty" yaml:"publicly_accessible,omitempty"`
+	StorageEncrypted            bool     `json:"storage_encrypted,omitempty" yaml:"storage_encrypted,omitempty"`
+	KmsKeyID                    string   `json:"kms_key_id,omitempty" yaml:"kms_key_id,omitempty"`
+	StorageType                 string   `json:"storage_type,omitempty" yaml:"storage_type,omitempty"`
+	Iops                        int64    `json:"iops,omitempty" yaml:"iops,omitempty"`
+	VpcSecurityGroupIds         []string `json:"vpc_security_group_ids,omitempty" yaml:"vpc_security_group_ids,omitempty"`
+	CopyTagsToSnapshot          bool     `json:"copy_tags_to_snapshot,omitempty" yaml:"copy_tags_to_snapshot,omitempty"`
+	SkipFinalSnapshot           bool     `json:"skip_final_snapshot,omitempty" yaml:"skip_final_snapshot,omitempty"`
 }
 
 func (c Catalog) Validate() error {

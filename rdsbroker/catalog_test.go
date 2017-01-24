@@ -146,13 +146,14 @@ var _ = Describe("Service", func() {
 var _ = Describe("ServicePlan", func() {
 	var (
 		servicePlan ServicePlan
+		free = true
 
 		validServicePlan = ServicePlan{
 			ID:          "Plan-1",
 			Name:        "Plan 1",
 			Description: "Plan-1 description",
 			Metadata:    &ServicePlanMetadata{},
-			Free:        true,
+			Free:        &free,
 			RDSProperties: RDSProperties{
 				DBInstanceClass:  "db.m3.medium",
 				Engine:           "MySQL",
