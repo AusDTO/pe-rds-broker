@@ -1,12 +1,12 @@
-hash: a744027179f899ec555b8210608f4b643528e7af0b3f6eb0235d964b81ef57bb
-updated: 2017-01-18T17:05:45.298024757+11:00
+hash: 1626f4d354f2c51fd940064a0a204d76ca5ec55438f6fa0f0489dd4367f25c77
+updated: 2017-01-24T15:53:51.075606657+11:00
 imports:
 - name: code.cloudfoundry.org/lager
   version: 62951a8009ab331bb21dc418074fa54e66eb9b6a
   subpackages:
   - lagertest
 - name: github.com/aws/aws-sdk-go
-  version: c6fc52983ea2375810aa38ddb5370e9cdf611716
+  version: 15bd33ce2edbdb46acdec779652ed39926682a9f
   subpackages:
   - aws
   - aws/awserr
