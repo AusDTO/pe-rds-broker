@@ -5,3 +5,4 @@ vendor/
 pe-rds-broker
 
 *\.test
+*.coverprofile
