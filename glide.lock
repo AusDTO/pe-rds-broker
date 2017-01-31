@@ -1,12 +1,12 @@
-hash: 1626f4d354f2c51fd940064a0a204d76ca5ec55438f6fa0f0489dd4367f25c77
-updated: 2017-01-24T15:53:51.075606657+11:00
+hash: 0985fa8bfbf8ee36561e5511ccf5284f6b81e47940823ace022333177eb41943
+updated: 2017-01-30T16:04:24.98385942+11:00
 imports:
 - name: code.cloudfoundry.org/lager
   version: 62951a8009ab331bb21dc418074fa54e66eb9b6a
   subpackages:
   - lagertest
 - name: github.com/aws/aws-sdk-go
-  version: 15bd33ce2edbdb46acdec779652ed39926682a9f
+  version: 3f8f870ec9939e32b3372abf74d24e468bcd285d
   subpackages:
   - aws
   - aws/awserr
@@ -43,12 +43,22 @@ imports:
   version: 215affda49addc4c8ef7e2534915df2c8c35c6cd
 - name: github.com/gorilla/mux
   version: cf79e51a62d8219d52060dfc1b4e810414ba2d15
+- name: github.com/jinzhu/gorm
+  version: 7fb9b62c17d90320e0582a4720db025c1652fd6a
+  subpackages:
+  - dialects/postgres
+  - dialects/sqlite
+- name: github.com/jinzhu/inflection
+  version: 1c35d901db3da928c72a72d8458480cc9ade058f
 - name: github.com/jmespath/go-jmespath
   version: bd40a432e4c76585ef6b72d3fd96fb9b6dc7b68d
 - name: github.com/lib/pq
   version: ffe986aba3e6cfcded8b06615965941408891ef0
   subpackages:
+  - hstore
   - oid
+- name: github.com/mattn/go-sqlite3
+  version: ce9149a3c941c30de51a01dbc5bc414ddaa52927
 - name: github.com/mitchellh/mapstructure
   version: 281073eb9eb092240d33ef253c404f1cca550309
 - name: github.com/onsi/ginkgo
@@ -87,6 +97,10 @@ imports:
   version: 11f4623ec2604f34502f6af8048b5f0162ca17eb
   subpackages:
   - auth
+- name: golang.org/x/net
+  version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
+  subpackages:
+  - context
 - name: golang.org/x/sys
   version: a408501be4d17ee978c04a618e7a1b22af058c0e
   subpackages:

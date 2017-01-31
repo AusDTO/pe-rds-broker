@@ -1,6 +1,7 @@
 machine:
   environment:
     WS: /home/ubuntu/.go_workspace/src/github.com/AusDTO/pe-rds-broker
+    RDSBROKER_ENCRYPTION_KEY: 0001020304050607080910111213141516171819202122232425262728293031
 
 dependencies:
   cache_directories:

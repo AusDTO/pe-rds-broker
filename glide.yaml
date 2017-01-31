@@ -15,6 +15,9 @@ import:
   - aws/session
 - package: github.com/pivotal-cf/brokerapi
 - package: github.com/go-sql-driver/mysql
+- package: github.com/jinzhu/gorm
+  # the v1.0 tag is old and buggy so fix at a newer version
+  version: 7fb9b62c17d90320e0582a4720db025c1652fd6a
 - package: github.com/lib/pq
 - package: github.com/mitchellh/mapstructure
 - package: github.com/onsi/ginkgo

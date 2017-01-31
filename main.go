@@ -16,6 +16,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 
 	"github.com/AusDTO/pe-rds-broker/awsrds"
+	"github.com/AusDTO/pe-rds-broker/internaldb"
 	"github.com/AusDTO/pe-rds-broker/rdsbroker"
 	"github.com/AusDTO/pe-rds-broker/sqlengine"
 )
@@ -69,7 +70,12 @@ func main() {
 
 	sqlProvider := sqlengine.NewProviderService(logger)
 
-	serviceBroker := rdsbroker.New(config.RDSConfig, dbInstance, dbCluster, sqlProvider, logger)
+	internalDB, err := internaldb.DBInit(&internaldb.DBConfig{DBType: "sqlite3", DBName: "test.sqlite3"})
+	if err != nil {
+		logger.Fatal("connectdb", err)
+	}
+
+	serviceBroker := rdsbroker.New(config.RDSConfig, dbInstance, dbCluster, sqlProvider, logger, internalDB)
 
 	credentials := brokerapi.BrokerCredentials{
 		Username: config.Username,

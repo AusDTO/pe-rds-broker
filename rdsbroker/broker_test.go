@@ -17,6 +17,7 @@ import (
 	"github.com/AusDTO/pe-rds-broker/awsrds"
 	rdsfake "github.com/AusDTO/pe-rds-broker/awsrds/fakes"
 	sqlfake "github.com/AusDTO/pe-rds-broker/sqlengine/fakes"
+	"github.com/AusDTO/pe-rds-broker/internaldb"
 )
 
 var _ = Describe("RDS Broker", func() {
@@ -137,8 +138,9 @@ var _ = Describe("RDS Broker", func() {
 		logger = lager.NewLogger("rdsbroker_test")
 		testSink = lagertest.NewTestSink()
 		logger.RegisterSink(testSink)
+		internalDB, _ := internaldb.DBInit(&internaldb.DBConfig{DBType: "sqlite3", DBName: "/tmp/test.sqlite3"})
 
-		rdsBroker = New(config, dbInstance, dbCluster, sqlProvider, logger)
+		rdsBroker = New(config, dbInstance, dbCluster, sqlProvider, logger, internalDB)
 	})
 
 	var _ = Describe("Services", func() {
