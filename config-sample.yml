@@ -4,7 +4,7 @@ username: username
 password: password
 rds_config:
   region: ap-southeast-2
-  db_prefix: cf-tessa
+  db_prefix: cf
   allow_user_provision_parameters: true
   allow_user_update_parameters: true
   allow_user_bind_parameters: true
