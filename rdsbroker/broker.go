@@ -18,9 +18,6 @@ import (
 	"github.com/AusDTO/pe-rds-broker/internaldb"
 )
 
-const defaultUsernameLength = 16
-const defaultPasswordLength = 32
-
 const instanceIDLogKey = "instance-id"
 const bindingIDLogKey = "binding-id"
 const detailsLogKey = "details"
@@ -50,7 +47,7 @@ type RDSBroker struct {
 	sqlProvider                  sqlengine.Provider
 	logger                       lager.Logger
 	internalDB                   *gorm.DB
-	envConfig                    *EnvConfig
+	encryptionKey                []byte
 }
 
 func New(
@@ -60,11 +57,8 @@ func New(
 	sqlProvider sqlengine.Provider,
 	logger lager.Logger,
 	internalDB *gorm.DB,
+	encryptionKey []byte,
 ) *RDSBroker {
-	envConfig, err := LoadEnvConfig()
-	if err != nil {
-		logger.Fatal("Failed to load environment", err)
-	}
 	return &RDSBroker{
 		dbPrefix:                     config.DBPrefix,
 		allowUserProvisionParameters: config.AllowUserProvisionParameters,
@@ -76,7 +70,7 @@ func New(
 		sqlProvider:                  sqlProvider,
 		logger:                       logger.Session("broker"),
 		internalDB:                   internalDB,
-		envConfig:                    envConfig,
+		encryptionKey:                encryptionKey,
 	}
 }
 
@@ -126,7 +120,7 @@ func (b *RDSBroker) Provision(context context.Context, instanceID string, detail
 		return provisionSpec, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
 	}
 
-	instance, err := internaldb.NewInstance(instanceID, b.envConfig.EncryptionKey)
+	instance, err := internaldb.NewInstance(instanceID, b.encryptionKey)
 	if err != nil {
 		return provisionSpec, err
 	}
@@ -304,7 +298,7 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 	if masterUser == nil {
 		return binding, err
 	}
-	masterPassword, err := masterUser.Password(b.envConfig.EncryptionKey)
+	masterPassword, err := masterUser.Password(b.encryptionKey)
 	if err != nil {
 		return binding, err
 	}
@@ -327,16 +321,16 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 		}
 	}
 
-	user, err := instance.NewUser(internaldb.Standard, b.envConfig.EncryptionKey)
+	user, err := instance.NewUser(internaldb.Standard, b.encryptionKey)
 	if err != nil {
 		return binding, err
 	}
 	user.BindingID = bindingID
-	if err = b.internalDB.Save(user).Error; err != nil {
+	if err = b.internalDB.Save(&user).Error; err != nil {
 		return binding, err
 	}
 
-	userPassword, err := user.Password(b.envConfig.EncryptionKey)
+	userPassword, err := user.Password(b.encryptionKey)
 	if err != nil {
 		return binding, err
 	}
@@ -388,7 +382,7 @@ func (b *RDSBroker) Unbind(context context.Context, instanceID, bindingID string
 	if masterUser == nil {
 		return err
 	}
-	masterPassword, err := masterUser.Password(b.envConfig.EncryptionKey)
+	masterPassword, err := masterUser.Password(b.encryptionKey)
 	if err != nil {
 		return err
 	}
@@ -518,7 +512,7 @@ func (b *RDSBroker) createDBCluster(instance *internaldb.DBInstance, servicePlan
 	dbClusterDetails.DatabaseName = b.dbName(instance)
 	dbClusterDetails.MasterUsername = instance.MasterUser().Username
 	var err error
-	dbClusterDetails.MasterUserPassword, err = instance.MasterUser().Password(b.envConfig.EncryptionKey)
+	dbClusterDetails.MasterUserPassword, err = instance.MasterUser().Password(b.encryptionKey)
 	if err != nil {
 		b.logger.Error("get-password", err)
 		return nil
@@ -618,7 +612,7 @@ func (b *RDSBroker) createDBInstance(instance *internaldb.DBInstance, servicePla
 		dbInstanceDetails.DBName = b.dbName(instance)
 		dbInstanceDetails.MasterUsername = instance.MasterUser().Username
 		var err error
-		dbInstanceDetails.MasterUserPassword, err = instance.MasterUser().Password(b.envConfig.EncryptionKey)
+		dbInstanceDetails.MasterUserPassword, err = instance.MasterUser().Password(b.encryptionKey)
 		if err != nil {
 			b.logger.Error("get-password", err)
 			return nil

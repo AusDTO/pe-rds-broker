@@ -3,8 +3,6 @@ package rdsbroker
 import (
 	"errors"
 	"fmt"
-	"encoding/hex"
-	"os"
 )
 
 type Config struct {
@@ -30,21 +28,4 @@ func (c Config) Validate() error {
 	}
 
 	return nil
-}
-
-type EnvConfig struct {
-	EncryptionKey []byte
-}
-
-func LoadEnvConfig() (*EnvConfig, error) {
-	var config EnvConfig
-	var err error
-	config.EncryptionKey, err = hex.DecodeString(os.Getenv("RDSBROKER_ENCRYPTION_KEY"))
-	if err != nil {
-		return &config, fmt.Errorf("Failed to parse RDSBROKER_ENCRYPTION_KEY", err)
-	}
-	if len(config.EncryptionKey) != 32 {
-		return &config, errors.New("RDSBROKER_ENCRYPTION_KEY must be a hex-encoded 256-bit key")
-	}
-	return &config, nil
 }

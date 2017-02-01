@@ -60,6 +60,11 @@ func main() {
 
 	logger := buildLogger(config.LogLevel)
 
+	envConfig, err := LoadEnvConfig()
+	if err != nil {
+		logger.Fatal("load-environment", err)
+	}
+
 	awsConfig := aws.NewConfig().WithRegion(config.RDSConfig.Region)
 	awsSession := session.New(awsConfig)
 
@@ -70,12 +75,12 @@ func main() {
 
 	sqlProvider := sqlengine.NewProviderService(logger)
 
-	internalDB, err := internaldb.DBInit(&internaldb.DBConfig{DBType: "sqlite3", DBName: "test.sqlite3"})
+	internalDB, err := internaldb.DBInit(&envConfig.InternalDBConfig)
 	if err != nil {
 		logger.Fatal("connectdb", err)
 	}
 
-	serviceBroker := rdsbroker.New(config.RDSConfig, dbInstance, dbCluster, sqlProvider, logger, internalDB)
+	serviceBroker := rdsbroker.New(config.RDSConfig, dbInstance, dbCluster, sqlProvider, logger, internalDB, envConfig.EncryptionKey)
 
 	credentials := brokerapi.BrokerCredentials{
 		Username: config.Username,
