@@ -109,7 +109,7 @@ func (b *RDSBroker) Provision(context context.Context, instanceID string, detail
 	}
 
 	provisionParameters := ProvisionParameters{}
-	if b.allowUserProvisionParameters {
+	if b.allowUserProvisionParameters && len(details.RawParameters) > 0 {
 		if err := json.Unmarshal(details.RawParameters, &provisionParameters); err != nil {
 			return provisionSpec, err
 		}

@@ -212,7 +212,7 @@ var _ = Describe("RDS Broker", func() {
 				PlanID:           "Plan-1",
 				ServiceID:        "Service-1",
 				SpaceGUID:        "space-id",
-				RawParameters:    json.RawMessage("{}"),
+				RawParameters:    json.RawMessage(""),
 			}
 			acceptsIncomplete = true
 
