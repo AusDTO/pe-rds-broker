@@ -55,7 +55,10 @@ func NewInstance(instanceID string, key []byte) (*DBInstance, error) {
 // Use this wrapper so we always preload the users
 func FindInstance(DB *gorm.DB, instanceID string) *DBInstance {
 	var instance DBInstance
-	DB.Where(&DBInstance{InstanceID: instanceID}).Preload("Users").First(&instance)
+	err := DB.Where(&DBInstance{InstanceID: instanceID}).Preload("Users").First(&instance).Error
+	if err != nil {
+		return nil
+	}
 	return &instance
 }
 
@@ -81,7 +84,6 @@ func NewUser(userType DBUserType, key []byte) (DBUser, error) {
 		return user, err
 	}
 	return user, nil
-
 }
 
 func (u *DBUser) SetPassword(password string, key []byte) error {
