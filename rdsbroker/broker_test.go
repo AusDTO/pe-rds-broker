@@ -92,7 +92,9 @@ var _ = Describe("RDS Broker", func() {
 			AllocatedStorage:  200,
 			SkipFinalSnapshot: skipFinalSnapshot,
 		}
-		// TODO Be less dumb about this
+		// So I tried deleting all entries in an AfterEach block but it takes
+		// the same amount of time as this and you have to manually add each new
+		// model to the list. So rm-ing the database it is.
 		os.Remove("/tmp/test.sqlite3")
 		var err error
 		internalDB, err = internaldb.DBInit(&internaldb.DBConfig{DBType: "sqlite3", DBName: "/tmp/test.sqlite3"})
