@@ -44,12 +44,28 @@ var _ = Describe("Config", func() {
 			Expect(err.Error()).To(ContainSubstring("Must provide a non-empty Region"))
 		})
 
-		It("returns error if DBPrefix is not valid", func() {
+		It("returns error if DBPrefix is empty", func() {
 			config.DBPrefix = ""
 
 			err := config.Validate()
 			Expect(err).To(HaveOccurred())
 			Expect(err.Error()).To(ContainSubstring("Must provide a non-empty DBPrefix"))
+		})
+
+		It("returns error if DBPrefix starts with a number", func() {
+			config.DBPrefix = "1"
+
+			err := config.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("DBPrefix must begin with a letter and contain only alphanumeric characters"))
+		})
+
+		It("returns error if DBPrefix contains special characters", func() {
+			config.DBPrefix = "a-b"
+
+			err := config.Validate()
+			Expect(err).To(HaveOccurred())
+			Expect(err.Error()).To(ContainSubstring("DBPrefix must begin with a letter and contain only alphanumeric characters"))
 		})
 
 		It("returns error if Catalog is not valid", func() {
