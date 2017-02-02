@@ -67,13 +67,18 @@ var _ = Describe("Catalog", func() {
 		})
 
 		It("returns true and the Service Plan if it is found", func() {
-			plan, found := catalog.FindServicePlan("Plan-1")
+			plan, found := catalog.FindServicePlan("Service-1", "Plan-1")
 			Expect(plan).To(Equal(plan1))
 			Expect(found).To(BeTrue())
 		})
 
-		It("returns false if it is not found", func() {
-			_, found := catalog.FindServicePlan("Plan-?")
+		It("returns false if the plan doesn't exist", func() {
+			_, found := catalog.FindServicePlan("Service-1", "Plan-?")
+			Expect(found).To(BeFalse())
+		})
+
+		It("returns false if the service doesn't exist", func() {
+			_, found := catalog.FindServicePlan("Service-?", "Plan-1")
 			Expect(found).To(BeFalse())
 		})
 	})

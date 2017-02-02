@@ -114,12 +114,14 @@ func (c Catalog) FindService(serviceID string) (service Service, found bool) {
 	return service, false
 }
 
-func (c Catalog) FindServicePlan(planID string) (plan ServicePlan, found bool) {
-	for _, service := range c.Services {
-		for _, plan := range service.Plans {
-			if plan.ID == planID {
-				return plan, true
-			}
+func (c Catalog) FindServicePlan(serviceID, planID string) (plan ServicePlan, found bool) {
+	service, found := c.FindService(serviceID)
+	if !found {
+		return plan, false
+	}
+	for _, plan := range service.Plans {
+		if plan.ID == planID {
+			return plan, true
 		}
 	}
 

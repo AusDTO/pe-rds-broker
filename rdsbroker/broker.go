@@ -115,9 +115,14 @@ func (b *RDSBroker) Provision(context context.Context, instanceID string, detail
 		}
 	}
 
-	servicePlan, ok := b.catalog.FindServicePlan(details.PlanID)
+	servicePlan, ok := b.catalog.FindServicePlan(details.ServiceID, details.PlanID)
 	if !ok {
 		return provisionSpec, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
+	}
+
+	// There's a potential race condition here but it's better than nothing
+	if internaldb.FindInstance(b.internalDB, instanceID) != nil {
+		return provisionSpec, errors.New("Instance already exists")
 	}
 
 	instance, err := internaldb.NewInstance(instanceID, b.encryptionKey)
@@ -179,7 +184,7 @@ func (b *RDSBroker) Update(context context.Context, instanceID string, details b
 		return updateSpec, brokerapi.ErrPlanChangeNotSupported
 	}
 
-	servicePlan, ok := b.catalog.FindServicePlan(details.PlanID)
+	servicePlan, ok := b.catalog.FindServicePlan(details.ServiceID, details.PlanID)
 	if !ok {
 		return updateSpec, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
 	}
@@ -220,7 +225,7 @@ func (b *RDSBroker) Deprovision(context context.Context, instanceID string, deta
 		return deprovisionSpec, brokerapi.ErrAsyncRequired
 	}
 
-	servicePlan, ok := b.catalog.FindServicePlan(details.PlanID)
+	servicePlan, ok := b.catalog.FindServicePlan(details.ServiceID, details.PlanID)
 	if !ok {
 		return deprovisionSpec, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
 	}
@@ -279,7 +284,7 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 		return binding, errors.New("Service is not bindable")
 	}
 
-	servicePlan, ok := b.catalog.FindServicePlan(details.PlanID)
+	servicePlan, ok := b.catalog.FindServicePlan(details.ServiceID, details.PlanID)
 	if !ok {
 		return binding, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
 	}
@@ -363,7 +368,7 @@ func (b *RDSBroker) Unbind(context context.Context, instanceID, bindingID string
 		detailsLogKey:    details,
 	})
 
-	servicePlan, ok := b.catalog.FindServicePlan(details.PlanID)
+	servicePlan, ok := b.catalog.FindServicePlan(details.ServiceID, details.PlanID)
 	if !ok {
 		return fmt.Errorf("Service Plan '%s' not found", details.PlanID)
 	}

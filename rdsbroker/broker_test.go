@@ -906,6 +906,26 @@ var _ = Describe("RDS Broker", func() {
 			})
 		})
 
+		Context("when instance id already exists", func() {
+			BeforeEach(func() {
+				instance, err := internaldb.NewInstance(instanceID, encryptionKey)
+				Expect(err).NotTo(HaveOccurred())
+				internalDB.Save(&instance)
+			})
+
+			It("returns the proper error", func() {
+				_, err := Provision()
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("Instance already exists"))
+			})
+
+			It("Doesn't create the database", func() {
+				_, err := Provision()
+				Expect(err).To(HaveOccurred())
+				Expect(dbInstance.CreateCalled).To(BeFalse())
+			})
+		})
+
 		Context("when Engine is Aurora", func() {
 			BeforeEach(func() {
 				rdsProperties1.Engine = "aurora"
