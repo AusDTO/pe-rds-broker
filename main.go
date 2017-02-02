@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -90,6 +89,6 @@ func main() {
 	brokerAPI := brokerapi.New(serviceBroker, logger, credentials)
 	http.Handle("/", brokerAPI)
 
-	fmt.Println("RDS Service Broker started on port " + port + "...")
+	logger.Info("RDS Service Broker started on port " + port + "...")
 	http.ListenAndServe(":"+port, nil)
 }

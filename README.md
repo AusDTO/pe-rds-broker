@@ -16,7 +16,13 @@ Using the standard `go install` (you must have [Go](https://golang.org/) already
 
 ```
 $ go install github.com/AusDTO/pe-rds-broker
-$ rds-broker -port=3000 -config=<path-to-your-config-file>
+$ ./pe-rds-broker -port=3000 -config=<path-to-your-config-file>
+```
+
+To pretty print the logs, pipe the output to [jq](https://stedolan.github.io/jq/):
+
+```
+$ ./pe-rds-broker -port=3000 -config=<path-to-your-config-file> | jq --unbuffered .
 ```
 
 ### Cloud Foundry
