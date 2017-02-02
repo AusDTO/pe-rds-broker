@@ -5,6 +5,7 @@ import (
 	. "github.com/onsi/gomega"
 
 	. "github.com/AusDTO/pe-rds-broker/utils"
+	"strings"
 )
 
 var _ = Describe("RandIV", func() {
@@ -31,6 +32,14 @@ var _ = Describe("RandUsername", func() {
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(username)).To(Equal(UsernameLength))
 	})
+
+	It("is a valid username", func() {
+		for i := 0; i < 10; i++ {
+			username, err := RandUsername()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(username).To(MatchRegexp("^[[:alpha:]][_[:alnum:]]*$"))
+		}
+	})
 })
 
 var _ = Describe("RandPassword", func() {
@@ -46,5 +55,14 @@ var _ = Describe("RandPassword", func() {
 		password, err := RandPassword()
 		Expect(err).NotTo(HaveOccurred())
 		Expect(len(password)).To(Equal(PasswordLength))
+	})
+
+	It("is a valid password", func() {
+		for i := 0; i < 10; i++ {
+			password, err := RandPassword()
+			Expect(err).NotTo(HaveOccurred())
+			Expect(strings.ContainsAny(password, "/@\" ")).To(BeFalse(),
+				"Password shouldn't contain special characters %s", password)
+		}
 	})
 })

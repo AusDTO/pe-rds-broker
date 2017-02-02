@@ -5,11 +5,13 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
+	"strings"
 )
 
 // Must be a multiple of 4
 const PasswordLength = 24
-const UsernameLength = 24
+// Must be a multiple of 4 plus 1
+const UsernameLength = 25
 
 func Encrypt(msg string, key, iv []byte) ([]byte, error) {
 	src := []byte(msg)
@@ -53,7 +55,7 @@ func RandString(length int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return base64.StdEncoding.EncodeToString(bytes), nil
+	return base64.URLEncoding.EncodeToString(bytes), nil
 }
 
 func RandPassword() (string, error) {
@@ -61,5 +63,10 @@ func RandPassword() (string, error) {
 }
 
 func RandUsername() (string, error) {
-	return RandString(UsernameLength)
+	// Username must start with a letter and can't have hyphens
+	username, err := RandString(UsernameLength - 1)
+	if err != nil {
+		return "", err
+	}
+	return "u" + strings.Replace(username, "-", "_", -1), nil
 }
