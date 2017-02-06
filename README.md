@@ -19,10 +19,11 @@ $ go install github.com/AusDTO/pe-rds-broker
 $ ./pe-rds-broker -port=3000 -config=<path-to-your-config-file>
 ```
 
-To pretty print the logs, pipe the output to [jq](https://stedolan.github.io/jq/):
+To pretty print the logs, pipe the output to [jq](https://stedolan.github.io/jq/). Note that this will remove any lines
+that are not json.
 
 ```
-$ ./pe-rds-broker -port=3000 -config=<path-to-your-config-file> | jq --unbuffered .
+$ ./pe-rds-broker -port=3000 -config=<path-to-your-config-file> | jq --unbuffered  -R 'fromjson?'
 ```
 
 ### Cloud Foundry
