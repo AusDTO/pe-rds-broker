@@ -318,14 +318,6 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 	}
 	defer sqlEngine.Close()
 
-	// TODO: remove this level of customisation
-	if bindParameters.DBName != "" {
-		dbName = bindParameters.DBName
-		if err = sqlEngine.CreateDB(dbName); err != nil {
-			return binding, err
-		}
-	}
-
 	user, err := instance.NewUser(internaldb.Standard, b.encryptionKey)
 	if err != nil {
 		return binding, err
@@ -533,10 +525,6 @@ func (b *RDSBroker) createDBCluster(instance *internaldb.DBInstance, servicePlan
 		dbClusterDetails.BackupRetentionPeriod = provisionParameters.BackupRetentionPeriod
 	}
 
-	if provisionParameters.DBName != "" {
-		dbClusterDetails.DatabaseName = provisionParameters.DBName
-	}
-
 	if provisionParameters.PreferredBackupWindow != "" {
 		dbClusterDetails.PreferredBackupWindow = provisionParameters.PreferredBackupWindow
 	}
@@ -635,10 +623,6 @@ func (b *RDSBroker) createDBInstance(instance *internaldb.DBInstance, servicePla
 
 		if provisionParameters.CharacterSetName != "" {
 			dbInstanceDetails.CharacterSetName = provisionParameters.CharacterSetName
-		}
-
-		if provisionParameters.DBName != "" {
-			dbInstanceDetails.DBName = provisionParameters.DBName
 		}
 
 		if provisionParameters.PreferredBackupWindow != "" {

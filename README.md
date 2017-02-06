@@ -96,7 +96,6 @@ Provision calls support the following optional [arbitrary parameters](https://do
 |:-----------------------------|:------- |:-----------
 | backup_retention_period      | Integer | The number of days that Amazon RDS should retain automatic backups of the DB instance (between `0` and `35`) (*)
 | character_set_name           | String  | For supported engines, indicates that the DB instance should be associated with the specified CharacterSet (*)
-| dbname                       | String  | The name of the Database to be provisioned. If it does not exists, the broker will create it, otherwise, it will reuse the existing one. If this parameter is not set, the broker will use a random Database name
 | preferred_backup_window      | String  | The daily time range during which automated backups are created if automated backups are enabled (*)
 | preferred_maintenance_window | String  | The weekly time range during which system maintenance can occur (*)
 
@@ -121,7 +120,7 @@ Bind calls support the following optional [arbitrary parameters](https://docs.cl
 
 | Option | Type   | Description
 |:-------|:------ |:-----------
-| dbname | String | The name of the Database to bind the application to (it must be provisioned previously)
+| TODO   |        | 
 
 ## Contributing
 

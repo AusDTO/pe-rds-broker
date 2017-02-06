@@ -421,31 +421,6 @@ var _ = Describe("RDS Broker", func() {
 			})
 		})
 
-		Context("when has DBName parameter", func() {
-			BeforeEach(func() {
-				provisionDetails.RawParameters = json.RawMessage("{\"dbname\": \"test-dbname\"}")
-			})
-
-			It("makes the proper calls", func() {
-				_, err := Provision()
-				Expect(dbInstance.CreateDBInstanceDetails.DBName).To(Equal("test-dbname"))
-				Expect(err).ToNot(HaveOccurred())
-			})
-
-			Context("when Engine is Aurora", func() {
-				BeforeEach(func() {
-					rdsProperties1.Engine = "aurora"
-				})
-
-				It("makes the proper calls", func() {
-					_, err := Provision()
-					Expect(dbCluster.CreateDBClusterDetails.DatabaseName).To(Equal("test-dbname"))
-					Expect(dbInstance.CreateDBInstanceDetails.DBName).To(Equal(""))
-					Expect(err).ToNot(HaveOccurred())
-				})
-			})
-		})
-
 		Context("when has DBParameterGroupName", func() {
 			BeforeEach(func() {
 				rdsProperties1.DBParameterGroupName = "test-db-parameter-group-name"
@@ -1918,7 +1893,8 @@ var _ = Describe("RDS Broker", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		Context("when Parameters are not valid", func() {
+		// Pending until we have bind parameters that can be invalid
+		PContext("when Parameters are not valid", func() {
 			BeforeEach(func() {
 				bindDetails.Parameters = map[string]interface{}{"dbname": true}
 			})
@@ -2061,39 +2037,6 @@ var _ = Describe("RDS Broker", func() {
 			})
 		})
 
-		Context("when DBNname Parameter is set", func() {
-			BeforeEach(func() {
-				bindDetails.Parameters = map[string]interface{}{"dbname": "my-test-db"}
-			})
-
-			It("returns the proper response", func() {
-				bindingResponse, _ := Bind()
-				credentials := bindingResponse.Credentials.(*CredentialsHash)
-				Expect(bindingResponse.SyslogDrainURL).To(BeEmpty())
-				Expect(credentials.Name).To(Equal("my-test-db"))
-			})
-
-			It("creates the DB with the proper name", func() {
-				Bind()
-				Expect(sqlEngine.CreateDBCalled).To(BeTrue())
-				Expect(sqlEngine.CreateDBDBName).To(Equal("my-test-db"))
-				Expect(sqlEngine.GrantPrivilegesDBName).To(Equal("my-test-db"))
-			})
-
-			Context("when creating the DB fails", func() {
-				BeforeEach(func() {
-					sqlEngine.CreateDBError = errors.New("Failed to create sqlEngine")
-				})
-
-				It("returns the proper error", func() {
-					_, err := Bind()
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(Equal("Failed to create sqlEngine"))
-					Expect(sqlEngine.CloseCalled).To(BeTrue())
-				})
-			})
-		})
-
 		Context("when creating a DB user fails", func() {
 			BeforeEach(func() {
 				sqlEngine.CreateUserError = errors.New("Failed to create user")
@@ -2177,8 +2120,6 @@ var _ = Describe("RDS Broker", func() {
 			Expect(sqlEngine.OpenDBName).To(Equal("test-db"))
 			Expect(sqlEngine.OpenUsername).ToNot(BeEmpty())
 			Expect(sqlEngine.OpenPassword).ToNot(BeEmpty())
-			// TODO decide if we can completely remove sqlEngine.Privileges
-			//Expect(sqlEngine.PrivilegesCalled).To(BeTrue())
 			Expect(sqlEngine.RevokePrivilegesCalled).To(BeTrue())
 			Expect(sqlEngine.RevokePrivilegesUsername).To(Equal(dbUsername))
 			Expect(sqlEngine.RevokePrivilegesDBName).To(Equal("test-db"))
@@ -2284,32 +2225,16 @@ var _ = Describe("RDS Broker", func() {
 			})
 		})
 
-		Context("when user has privileges over a DB", func() {
+		Context("when revoking privileges fails", func() {
 			BeforeEach(func() {
-				sqlEngine.PrivilegesPrivileges = map[string][]string{"test-db": []string{dbUsername}}
+				sqlEngine.RevokePrivilegesError = errors.New("Failed to revoke privileges")
 			})
 
-			It("makes the proper calls", func() {
+			It("returns the proper error", func() {
 				err := Unbind()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(sqlEngine.RevokePrivilegesCalled).To(BeTrue())
-				Expect(sqlEngine.RevokePrivilegesDBName).To(Equal("test-db"))
-				Expect(sqlEngine.RevokePrivilegesUsername).To(Equal(dbUsername))
-				Expect(sqlEngine.DropDBCalled).To(BeFalse())
+				Expect(err).To(HaveOccurred())
+				Expect(err.Error()).To(Equal("Failed to revoke privileges"))
 				Expect(sqlEngine.CloseCalled).To(BeTrue())
-			})
-
-			Context("when revoking privileges fails", func() {
-				BeforeEach(func() {
-					sqlEngine.RevokePrivilegesError = errors.New("Failed to revoke privileges")
-				})
-
-				It("returns the proper error", func() {
-					err := Unbind()
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(Equal("Failed to revoke privileges"))
-					Expect(sqlEngine.CloseCalled).To(BeTrue())
-				})
 			})
 		})
 

@@ -110,42 +110,6 @@ func (d *PostgresEngine) DropUser(username string) error {
 	return nil
 }
 
-func (d *PostgresEngine) Privileges() (map[string][]string, error) {
-	privileges := make(map[string][]string)
-
-	selectPrivilegesStatement := "SELECT datname, usename FROM pg_database d, pg_user u WHERE usecreatedb = false AND (SELECT has_database_privilege(u.usename, d.datname, 'create'))"
-	d.logger.Debug("database-privileges", lager.Data{"statement": selectPrivilegesStatement})
-
-	rows, err := d.db.Query(selectPrivilegesStatement)
-	if err != nil {
-		d.logger.Error("sql-error", err)
-		return privileges, err
-	}
-	defer rows.Close()
-
-	var dbname, username string
-	for rows.Next() {
-		err := rows.Scan(&dbname, &username)
-		if err != nil {
-			d.logger.Error("sql-error", err)
-			return privileges, err
-		}
-		if _, ok := privileges[dbname]; !ok {
-			privileges[dbname] = []string{}
-		}
-		privileges[dbname] = append(privileges[dbname], username)
-	}
-	err = rows.Err()
-	if err != nil {
-		d.logger.Error("sql-error", err)
-		return privileges, err
-	}
-
-	d.logger.Debug("database-privileges", lager.Data{"output": privileges})
-
-	return privileges, nil
-}
-
 func (d *PostgresEngine) GrantPrivileges(dbname string, username string) error {
 	grantPrivilegesStatement := "GRANT ALL PRIVILEGES ON DATABASE \"" + dbname + "\" TO \"" + username + "\""
 	d.logger.Debug("grant-privileges", lager.Data{"statement": grantPrivilegesStatement})

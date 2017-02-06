@@ -112,42 +112,6 @@ func (d *MySQLEngine) DropUser(username string) error {
 	return nil
 }
 
-func (d *MySQLEngine) Privileges() (map[string][]string, error) {
-	privileges := make(map[string][]string)
-
-	selectPrivilegesStatement := "SELECT db, user FROM mysql.db"
-	d.logger.Debug("database-privileges", lager.Data{"statement": selectPrivilegesStatement})
-
-	rows, err := d.db.Query(selectPrivilegesStatement)
-	if err != nil {
-		d.logger.Error("sql-error", err)
-		return privileges, err
-	}
-	defer rows.Close()
-
-	var dbname, username string
-	for rows.Next() {
-		err := rows.Scan(&dbname, &username)
-		if err != nil {
-			d.logger.Error("sql-error", err)
-			return privileges, err
-		}
-		if _, ok := privileges[dbname]; !ok {
-			privileges[dbname] = []string{}
-		}
-		privileges[dbname] = append(privileges[dbname], username)
-	}
-	err = rows.Err()
-	if err != nil {
-		d.logger.Error("sql-error", err)
-		return privileges, err
-	}
-
-	d.logger.Debug("database-privileges", lager.Data{"output": privileges})
-
-	return privileges, nil
-}
-
 func (d *MySQLEngine) GrantPrivileges(dbname string, username string) error {
 	grantPrivilegesStatement := "GRANT ALL PRIVILEGES ON " + dbname + ".* TO '" + username + "'@'%'"
 	d.logger.Debug("grant-privileges", lager.Data{"statement": grantPrivilegesStatement})

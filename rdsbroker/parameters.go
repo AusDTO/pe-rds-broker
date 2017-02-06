@@ -8,7 +8,6 @@ package rdsbroker
 type ProvisionParameters struct {
 	BackupRetentionPeriod      int64  `json:"backup_retention_period"`
 	CharacterSetName           string `json:"character_set_name"`
-	DBName                     string `json:"dbname"`
 	PreferredBackupWindow      string `json:"preferred_backup_window"`
 	PreferredMaintenanceWindow string `json:"preferred_maintenance_window"`
 }
@@ -20,8 +19,8 @@ type UpdateParameters struct {
 	PreferredMaintenanceWindow string `mapstructure:"preferred_maintenance_window"`
 }
 
+// Yes this is currently empty. But we'll keep it so we can add new things later.
 type BindParameters struct {
-	DBName string `mapstructure:"dbname"`
 }
 
 type CredentialsHash struct {

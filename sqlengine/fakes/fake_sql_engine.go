@@ -36,10 +36,6 @@ type FakeSQLEngine struct {
 	DropUserUsername string
 	DropUserError    error
 
-	PrivilegesCalled     bool
-	PrivilegesPrivileges map[string][]string
-	PrivilegesError      error
-
 	GrantPrivilegesCalled   bool
 	GrantPrivilegesDBName   string
 	GrantPrivilegesUsername string
@@ -100,12 +96,6 @@ func (f *FakeSQLEngine) DropUser(username string) error {
 	f.DropUserUsername = username
 
 	return f.DropUserError
-}
-
-func (f *FakeSQLEngine) Privileges() (map[string][]string, error) {
-	f.PrivilegesCalled = true
-
-	return f.PrivilegesPrivileges, f.PrivilegesError
 }
 
 func (f *FakeSQLEngine) GrantPrivileges(dbname string, username string) error {
