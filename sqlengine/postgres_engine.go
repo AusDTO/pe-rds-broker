@@ -106,6 +106,15 @@ func (d *PostgresEngine) CreateUser(username string, password string) error {
 
 func (d *PostgresEngine) DropUser(username string) error {
 	// For PostgreSQL we don't drop the user because it might still be owner of some objects
+	// We make it so they can't log in instead
+
+	nologinStatement := "ALTER ROLE \"" + username + "\" WITH NOLOGIN"
+	d.logger.Debug("revoke-privileges", lager.Data{"statement": nologinStatement})
+
+	if _, err := d.db.Exec(nologinStatement); err != nil {
+		d.logger.Error("sql-error", err)
+		return err
+	}
 
 	return nil
 }
