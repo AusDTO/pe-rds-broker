@@ -1736,6 +1736,12 @@ var _ = Describe("RDS Broker", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
+		It ("doesn't delete the internaldb instance", func() {
+			_, err := Deprovision()
+			Expect(err).ToNot(HaveOccurred())
+			Expect(internaldb.FindInstance(internalDB, instanceID)).NotTo(BeNil())
+		})
+
 		Context("when it does not skip final snaphot", func() {
 			BeforeEach(func() {
 				rdsProperties1.SkipFinalSnapshot = false
@@ -2362,6 +2368,12 @@ var _ = Describe("RDS Broker", func() {
 				Expect(err.Error()).To(Equal("operation failed"))
 			})
 
+			It("does not delete the local instance", func() {
+				_, err := LastOperation()
+				Expect(err).To(HaveOccurred())
+				Expect(internaldb.FindInstance(internalDB, instanceID)).NotTo(BeNil())
+			})
+
 			Context("when the DB Instance does not exists", func() {
 				BeforeEach(func() {
 					dbInstance.DescribeError = awsrds.ErrDBInstanceDoesNotExist
@@ -2371,6 +2383,12 @@ var _ = Describe("RDS Broker", func() {
 					_, err := LastOperation()
 					Expect(err).To(HaveOccurred())
 					Expect(err).To(Equal(brokerapi.ErrInstanceDoesNotExist))
+				})
+
+				It("deletes the local instance", func() {
+					_, err := LastOperation()
+					Expect(err).To(HaveOccurred())
+					Expect(internaldb.FindInstance(internalDB, instanceID)).To(BeNil())
 				})
 			})
 		})

@@ -75,6 +75,8 @@ func New(
 }
 
 func (b *RDSBroker) Services(context context.Context) []brokerapi.Service {
+	b.logger.Debug("services")
+
 	var services []brokerapi.Service
 
 	/* Service and brokerapi.Service are slightly different data structures
@@ -251,10 +253,8 @@ func (b *RDSBroker) Deprovision(context context.Context, instanceID string, deta
 		b.dbCluster.Delete(b.dbClusterIdentifier(instance), servicePlan.RDSProperties.SkipFinalSnapshot)
 	}
 
-	if err := b.internalDB.Delete(&instance).Error; err != nil {
-		// Log and move on because the database is gone for good
-		b.logger.Error("delete-instance", err)
-	}
+	// We do not delete the internal reference to the DB here because we've only started the delete process
+	// and we still need the reference for LastOperation()
 
 	return deprovisionSpec, nil
 }
@@ -438,6 +438,12 @@ func (b *RDSBroker) LastOperation(context context.Context, instanceID, operation
 	dbInstanceDetails, err := b.dbInstance.Describe(b.dbInstanceIdentifier(instance))
 	if err != nil {
 		if err == awsrds.ErrDBInstanceDoesNotExist {
+			// The instance doesn't exist on AWS but we have a local reference to it
+			// We should get rid of our local reference
+			if err := b.internalDB.Delete(&instance).Error; err != nil {
+				b.logger.Error("delete-internal", err)
+			}
+
 			return lastOperation, brokerapi.ErrInstanceDoesNotExist
 		}
 		return lastOperation, err
