@@ -2,12 +2,12 @@ package internaldb
 
 import (
 	"fmt"
-	"log"
 	"errors"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
+	"code.cloudfoundry.org/lager"
 )
 
 //   Valid SSL modes:
@@ -27,7 +27,7 @@ type DBConfig struct {
 // Supported DB types:
 // * postgres
 // * sqlite3
-func DBInit(dbConfig *DBConfig) (*gorm.DB, error) {
+func DBInit(dbConfig *DBConfig, logger lager.Logger) (*gorm.DB, error) {
 	var DB *gorm.DB
 	var err error
 	switch dbConfig.DBType {
@@ -44,19 +44,31 @@ func DBInit(dbConfig *DBConfig) (*gorm.DB, error) {
 	case "sqlite3":
 		DB, err = gorm.Open("sqlite3", dbConfig.DBName)
 	default:
-		errorString := "Cannot connect. Unsupported DB type: (" + dbConfig.DBType + ")"
-		log.Println(errorString)
-		return nil, errors.New(errorString)
+		err = errors.New("Cannot connect. Unsupported DB type: (" + dbConfig.DBType + ")")
+		logger.Error("connectdb", err)
+		return nil, err
 	}
 	if err != nil {
-		log.Println("Error!")
+		logger.Error("connectdb", err)
 		return nil, err
 	}
 
 	if err = DB.DB().Ping(); err != nil {
-		log.Println("Unable to verify connection to database")
+		logger.Error("connectdb-ping", err)
 		return nil, err
 	}
 	DB.AutoMigrate(&DBInstance{}, &DBUser{})
+	// AutoMigrate does not handle FK contraints, nor does sqlite
+	if dbConfig.DBType == "postgres" {
+		err = DB.Model(&DBUser{}).AddForeignKey(
+			"db_instance_id", // instance_id field of the DBUser table
+			"db_instances(id)", // references the id field of the db_instances table
+			"CASCADE", // on delete CASCADE
+			"RESTRICT", // on update RESTRICT
+		).Error
+		if err != nil {
+			logger.Error("add-fk", err)
+		}
+	}
 	return DB, nil
 }

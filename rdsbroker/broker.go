@@ -440,7 +440,7 @@ func (b *RDSBroker) LastOperation(context context.Context, instanceID, operation
 		if err == awsrds.ErrDBInstanceDoesNotExist {
 			// The instance doesn't exist on AWS but we have a local reference to it
 			// We should get rid of our local reference
-			if err := b.internalDB.Delete(&instance).Error; err != nil {
+			if err := instance.Delete(b.internalDB); err != nil {
 				b.logger.Error("delete-internal", err)
 			}
 

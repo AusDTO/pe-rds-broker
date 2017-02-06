@@ -74,7 +74,7 @@ func main() {
 
 	sqlProvider := sqlengine.NewProviderService(logger)
 
-	internalDB, err := internaldb.DBInit(&envConfig.InternalDBConfig)
+	internalDB, err := internaldb.DBInit(&envConfig.InternalDBConfig, logger)
 	if err != nil {
 		logger.Fatal("connectdb", err)
 	}

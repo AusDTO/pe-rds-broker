@@ -97,7 +97,7 @@ var _ = Describe("RDS Broker", func() {
 		// model to the list. So rm-ing the database it is.
 		os.Remove("/tmp/test.sqlite3")
 		var err error
-		internalDB, err = internaldb.DBInit(&internaldb.DBConfig{DBType: "sqlite3", DBName: "/tmp/test.sqlite3"})
+		internalDB, err = internaldb.DBInit(&internaldb.DBConfig{DBType: "sqlite3", DBName: "/tmp/test.sqlite3"}, logger)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(internalDB).NotTo(BeNil())
 	})
