@@ -57,10 +57,15 @@ func DBInit(dbConfig *DBConfig, logger lager.Logger) (*gorm.DB, error) {
 		logger.Error("connectdb-ping", err)
 		return nil, err
 	}
-	DB.AutoMigrate(&DBInstance{}, &DBUser{})
+	migrate(DB, dbConfig, logger)
+	return DB, nil
+}
+
+func migrate(db *gorm.DB, dbConfig *DBConfig, logger lager.Logger) {
+	db.AutoMigrate(&DBInstance{}, &DBUser{}, &DBBinding{})
 	// AutoMigrate does not handle FK contraints, nor does sqlite
 	if dbConfig.DBType == "postgres" {
-		err = DB.Model(&DBUser{}).AddForeignKey(
+		err := db.Model(&DBUser{}).AddForeignKey(
 			"db_instance_id", // instance_id field of the DBUser table
 			"db_instances(id)", // references the id field of the db_instances table
 			"CASCADE", // on delete CASCADE
@@ -69,6 +74,14 @@ func DBInit(dbConfig *DBConfig, logger lager.Logger) (*gorm.DB, error) {
 		if err != nil {
 			logger.Error("add-fk", err)
 		}
+		err = db.Model(&DBBinding{}).AddForeignKey(
+			"db_user_id",
+			"db_users(id)",
+			"CASCADE",
+			"RESTRICT",
+		).Error
+		if err != nil {
+			logger.Error("add-fk", err)
+		}
 	}
-	return DB, nil
 }

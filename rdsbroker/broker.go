@@ -16,6 +16,8 @@ import (
 	"github.com/AusDTO/pe-rds-broker/awsrds"
 	"github.com/AusDTO/pe-rds-broker/sqlengine"
 	"github.com/AusDTO/pe-rds-broker/internaldb"
+	"regexp"
+	"github.com/AusDTO/pe-rds-broker/utils"
 )
 
 const instanceIDLogKey = "instance-id"
@@ -273,6 +275,9 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 		if err := mapstructure.Decode(details.Parameters, &bindParameters); err != nil {
 			return binding, err
 		}
+		if !regexp.MustCompile("^$|^[[:alpha:]][_[:alnum:]]*$").MatchString(bindParameters.Username) {
+			return binding, errors.New("Username must begin with a letter and contain only alphanumeric characters")
+		}
 	}
 
 	service, ok := b.catalog.FindService(details.ServiceID)
@@ -318,12 +323,8 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 	}
 	defer sqlEngine.Close()
 
-	user, err := instance.NewUser(internaldb.Standard, b.encryptionKey)
+	user, new, err := instance.Bind(b.internalDB, bindingID, b.dbUsername(bindParameters.Username, details.AppGUID), internaldb.Standard, b.encryptionKey)
 	if err != nil {
-		return binding, err
-	}
-	user.BindingID = bindingID
-	if err = b.internalDB.Save(&user).Error; err != nil {
 		return binding, err
 	}
 
@@ -332,12 +333,14 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 		return binding, err
 	}
 
-	if err = sqlEngine.CreateUser(user.Username, userPassword); err != nil {
-		return binding, err
-	}
+	if new {
+		if err = sqlEngine.CreateUser(user.Username, userPassword); err != nil {
+			return binding, err
+		}
 
-	if err = sqlEngine.GrantPrivileges(dbName, user.Username); err != nil {
-		return binding, err
+		if err = sqlEngine.GrantPrivileges(dbName, user.Username); err != nil {
+			return binding, err
+		}
 	}
 
 	binding.Credentials = &CredentialsHash{
@@ -394,22 +397,24 @@ func (b *RDSBroker) Unbind(context context.Context, instanceID, bindingID string
 	}
 	defer sqlEngine.Close()
 
-	user := instance.BindingUser(bindingID)
-	if user == nil {
-		return errors.New("Cannot find binding")
-	}
-
-	if err = sqlEngine.RevokePrivileges(dbName, user.Username); err != nil {
+	user, delete, err := instance.Unbind(b.internalDB, bindingID)
+	if err != nil {
 		return err
 	}
 
-	if err = sqlEngine.DropUser(user.Username); err != nil {
-		return err
-	}
+	if delete {
+		if err = sqlEngine.RevokePrivileges(dbName, user.Username); err != nil {
+			return err
+		}
 
-	if err = b.internalDB.Delete(&user).Error; err != nil {
-		// Log and move on because the actual user is gone
-		b.logger.Error("delete-user", err)
+		if err = sqlEngine.DropUser(user.Username); err != nil {
+			return err
+		}
+
+		if err = user.Delete(b.internalDB); err != nil {
+			// Log and move on because the actual user is gone
+			b.logger.Error("delete-user", err)
+		}
 	}
 
 	return nil
@@ -467,8 +472,16 @@ func (b *RDSBroker) dbName(instance *internaldb.DBInstance) string {
 	return fmt.Sprintf("%s_%s", b.dbPrefix, strings.Replace(instance.InstanceID, "-", "_", -1))
 }
 
-func (b *RDSBroker) dbUsername(appID string) string {
-	return strings.Replace(appID, "-", "_", -1)
+// requestedUsername should have already been tested for validity
+func (b *RDSBroker) dbUsername(requestedUsername, appID string) string {
+	if requestedUsername != "" {
+		return requestedUsername
+	} else if appID != "" {
+		return "u" + strings.Replace(appID, "-", "_", -1)
+	} else {
+		username, _ := utils.RandUsername()
+		return username
+	}
 }
 
 func (b *RDSBroker) dbConnInfo(instance *internaldb.DBInstance, engine string) (dbAddress, dbName string, dbPort int64, err error) {

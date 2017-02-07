@@ -5,6 +5,7 @@ import (
 	"github.com/AusDTO/pe-rds-broker/utils"
 	"database/sql/driver"
 	"github.com/jinzhu/gorm"
+	"errors"
 )
 
 type DBInstance struct {
@@ -28,7 +29,16 @@ type DBUser struct {
 	EncryptedPassword []byte
 	IV []byte
 	Type DBUserType
+	Bindings []DBBinding
+}
+
+type DBBinding struct {
+	ID uint64 `gorm:"primary_key"`
+	CreatedAt time.Time
+	UpdatedAt time.Time
 	BindingID string
+	DBUser DBUser // gorm belongs to relationship
+	DBUserID uint64
 }
 
 type DBUserType string
@@ -55,11 +65,47 @@ func NewInstance(instanceID string, key []byte) (*DBInstance, error) {
 // Use this wrapper so we always preload the users
 func FindInstance(db *gorm.DB, instanceID string) *DBInstance {
 	var instance DBInstance
-	err := db.Where(&DBInstance{InstanceID: instanceID}).Preload("Users").First(&instance).Error
+	err := db.Where(&DBInstance{InstanceID: instanceID}).Preload("Users.Bindings").First(&instance).Error
 	if err != nil {
 		return nil
 	}
 	return &instance
+}
+
+func (i *DBInstance) Bind(db *gorm.DB, bindingID, username string, userType DBUserType, key []byte) (user DBUser, new bool, err error) {
+	current_user := i.User(username)
+	if current_user == nil {
+		new = true
+		user, err = i.NewUser(userType, key)
+		if err != nil {
+			return
+		}
+		user.Username = username
+	} else {
+		new = false
+		user = *current_user
+	}
+	user.Bindings = append(user.Bindings, DBBinding{BindingID: bindingID})
+	err = db.Save(&user).Error
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (i *DBInstance) Unbind(db *gorm.DB, bindingID string) (user DBUser, delete bool, err error) {
+	user_p, binding := i.BindingUser(bindingID)
+	if user_p == nil || binding == nil {
+		return user, false, errors.New("Unknown binding ID")
+	}
+	user = *user_p
+	// delete if this is the last binding
+	delete = len(user.Bindings) == 1
+	err = db.Delete(&binding).Error
+	if err != nil {
+		return
+	}
+	return
 }
 
 func (i *DBInstance) NewUser(userType DBUserType, key []byte) (DBUser, error) {
@@ -89,12 +135,23 @@ func NewUser(userType DBUserType, key []byte) (DBUser, error) {
 func (i *DBInstance) Delete(db *gorm.DB) error {
 	var err error
 	for _, user := range i.Users {
-		err = db.Delete(&user).Error
+		err = user.Delete(db)
 		if err != nil {
 			return err
 		}
 	}
 	return db.Delete(i).Error
+}
+
+func (u *DBUser) Delete(db *gorm.DB) error {
+	var err error
+	for _, binding := range u.Bindings {
+		err = db.Delete(&binding).Error
+		if err != nil {
+			return err
+		}
+	}
+	return db.Delete(u).Error
 }
 
 func (u *DBUser) SetPassword(password string, key []byte) error {
@@ -136,9 +193,22 @@ func (i *DBInstance) MasterUser() *DBUser {
 	return nil
 }
 
-func (i *DBInstance) BindingUser(bindingID string) *DBUser {
+func (i *DBInstance) BindingUser(bindingID string) (*DBUser, *DBBinding) {
 	for _, user := range i.Users {
-		if user.Type == Standard && user.BindingID == bindingID {
+		if user.Type == Standard {
+			for _, binding := range user.Bindings {
+				if binding.BindingID == bindingID {
+					return &user, &binding
+				}
+			}
+		}
+	}
+	return nil, nil
+}
+
+func (i *DBInstance) User(username string) *DBUser {
+	for _, user := range i.Users {
+		if user.Username == username {
 			return &user
 		}
 	}

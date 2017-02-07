@@ -1822,6 +1822,8 @@ var _ = Describe("RDS Broker", func() {
 	var _ = Describe("Bind", func() {
 		var (
 			bindDetails brokerapi.BindDetails
+			dbUsername string
+			instance *internaldb.DBInstance
 		)
 
 		BeforeEach(func() {
@@ -1831,6 +1833,7 @@ var _ = Describe("RDS Broker", func() {
 				AppGUID:    "Application-1",
 				Parameters: map[string]interface{}{},
 			}
+			dbUsername = "uApplication_1"
 
 			dbInstance.DescribeDBInstanceDetails = awsrds.DBInstanceDetails{
 				Identifier:     dbInstanceIdentifier,
@@ -1845,9 +1848,11 @@ var _ = Describe("RDS Broker", func() {
 				Port:           3306,
 				DatabaseName:   "test-db",
 			}
-			instance, err := internaldb.NewInstance(instanceID, encryptionKey)
+			var err error
+			instance, err = internaldb.NewInstance(instanceID, encryptionKey)
 			Expect(err).NotTo(HaveOccurred())
-			internalDB.Save(&instance)
+			err = internalDB.Save(instance).Error
+			Expect(err).NotTo(HaveOccurred())
 		})
 
 		Bind := func() (brokerapi.Binding, error) {
@@ -1856,20 +1861,21 @@ var _ = Describe("RDS Broker", func() {
 
 		It("returns the proper response", func() {
 			bindingResponse, err := Bind()
+			Expect(err).ToNot(HaveOccurred())
 			credentials := bindingResponse.Credentials.(*CredentialsHash)
 			Expect(bindingResponse.SyslogDrainURL).To(BeEmpty())
 			Expect(credentials.Host).To(Equal("endpoint-address"))
 			Expect(credentials.Port).To(Equal(int64(3306)))
 			Expect(credentials.Name).To(Equal("test-db"))
-			Expect(credentials.Username).ToNot(BeEmpty())
+			Expect(credentials.Username).To(Equal(dbUsername))
 			Expect(credentials.Password).ToNot(BeEmpty())
 			Expect(credentials.URI).To(ContainSubstring("@endpoint-address:3306/test-db?reconnect=true"))
 			Expect(credentials.JDBCURI).To(ContainSubstring("jdbc:fake://endpoint-address:3306/test-db?user=" + credentials.Username + "&password="))
-			Expect(err).ToNot(HaveOccurred())
 		})
 
 		It("makes the proper calls", func() {
 			bindingResponse, err := Bind()
+			Expect(err).ToNot(HaveOccurred())
 			credentials := bindingResponse.Credentials.(*CredentialsHash)
 			Expect(dbCluster.DescribeCalled).To(BeFalse())
 			Expect(dbInstance.DescribeCalled).To(BeTrue())
@@ -1890,19 +1896,17 @@ var _ = Describe("RDS Broker", func() {
 			Expect(sqlEngine.GrantPrivilegesDBName).To(Equal("test-db"))
 			Expect(sqlEngine.GrantPrivilegesUsername).To(Equal(credentials.Username))
 			Expect(sqlEngine.CloseCalled).To(BeTrue())
-			Expect(err).ToNot(HaveOccurred())
 		})
 
-		// Pending until we have bind parameters that can be invalid
-		PContext("when Parameters are not valid", func() {
+		Context("when Parameters are not valid", func() {
 			BeforeEach(func() {
-				bindDetails.Parameters = map[string]interface{}{"dbname": true}
+				bindDetails.Parameters = map[string]interface{}{"username": true}
 			})
 
 			It("returns the proper error", func() {
 				_, err := Bind()
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("'dbname' expected type 'string', got unconvertible type 'bool'"))
+				Expect(err.Error()).To(ContainSubstring("'username' expected type 'string', got unconvertible type 'bool'"))
 			})
 
 			Context("and user bind parameters are not allowed", func() {
@@ -1950,6 +1954,77 @@ var _ = Describe("RDS Broker", func() {
 				_, err := Bind()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal("Service Plan 'unknown' not found"))
+			})
+		})
+
+		Context("When given a custom username", func() {
+			BeforeEach(func() {
+				bindDetails.Parameters = map[string]interface{}{"username": "custom_user"}
+			})
+
+			It("returns the proper response", func() {
+				bindingResponse, err := Bind()
+				Expect(err).ToNot(HaveOccurred())
+				credentials := bindingResponse.Credentials.(*CredentialsHash)
+				Expect(credentials.Username).To(Equal("custom_user"))
+			})
+
+			It("makes the proper calls", func() {
+				_, err := Bind()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(sqlEngine.CreateUserCalled).To(BeTrue())
+				Expect(sqlEngine.CreateUserUsername).To(Equal("custom_user"))
+				Expect(sqlEngine.GrantPrivilegesCalled).To(BeTrue())
+				Expect(sqlEngine.GrantPrivilegesUsername).To(Equal("custom_user"))
+			})
+
+			Context("that's invalid", func() {
+				BeforeEach(func() {
+					bindDetails.Parameters = map[string]interface{}{"username": "****"}
+				})
+
+				It("returns the proper error", func() {
+					_, err := Bind()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("Username must begin with a letter and contain only alphanumeric characters"))
+				})
+			})
+
+			Context("that already exists", func() {
+				var (
+					password string
+				)
+				BeforeEach(func() {
+					user, _, err := instance.Bind(internalDB, "binding-zero", "custom_user", internaldb.Standard, encryptionKey)
+					Expect(err).NotTo(HaveOccurred())
+					password, err = user.Password(encryptionKey)
+					Expect(err).NotTo(HaveOccurred())
+				})
+
+				It("returns the proper response", func() {
+					bindingResponse, err := Bind()
+					Expect(err).ToNot(HaveOccurred())
+					credentials := bindingResponse.Credentials.(*CredentialsHash)
+					Expect(credentials.Username).To(Equal("custom_user"))
+					Expect(credentials.Password).To(Equal(password))
+				})
+
+				It("makes the proper calls", func() {
+					_, err := Bind()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(sqlEngine.CreateUserCalled).To(BeFalse())
+					Expect(sqlEngine.GrantPrivilegesCalled).To(BeFalse())
+				})
+
+				It("makes the proper database entries", func() {
+					_, err := Bind()
+					Expect(err).ToNot(HaveOccurred())
+					instance := internaldb.FindInstance(internalDB, instanceID)
+					Expect(instance).NotTo(BeNil())
+					// one Master, one Standard
+					Expect(instance.Users).To(HaveLen(2))
+					Expect(instance.User("custom_user").Bindings).To(HaveLen(2))
+				})
 			})
 		})
 
@@ -2094,12 +2169,9 @@ var _ = Describe("RDS Broker", func() {
 			// Save first to set ids before creating binding user
 			err = internalDB.Save(&instance).Error
 			Expect(err).NotTo(HaveOccurred())
-			user, err := instance.NewUser(internaldb.Standard, encryptionKey)
+			dbUsername = "username"
+			_, _, err = instance.Bind(internalDB, bindingID, dbUsername, internaldb.Standard, encryptionKey)
 			Expect(err).NotTo(HaveOccurred())
-			user.BindingID = bindingID
-			err = internalDB.Save(&user).Error
-			Expect(err).NotTo(HaveOccurred())
-			dbUsername = user.Username
 		})
 
 		Unbind := func() (error) {
@@ -2127,6 +2199,21 @@ var _ = Describe("RDS Broker", func() {
 			Expect(sqlEngine.DropUserCalled).To(BeTrue())
 			Expect(sqlEngine.DropUserUsername).To(Equal(dbUsername))
 			Expect(sqlEngine.CloseCalled).To(BeTrue())
+		})
+
+		Context("when another binding has the same username", func() {
+			BeforeEach(func() {
+				instance := internaldb.FindInstance(internalDB, instanceID)
+				_, _, err := instance.Bind(internalDB, "binding-two", dbUsername, internaldb.Standard, encryptionKey)
+				Expect(err).NotTo(HaveOccurred())
+			})
+
+			It("makes the proper calls", func() {
+				err := Unbind()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(sqlEngine.RevokePrivilegesCalled).To(BeFalse())
+				Expect(sqlEngine.DropUserCalled).To(BeFalse())
+			})
 		})
 
 		Context("when Service Plan is not found", func() {

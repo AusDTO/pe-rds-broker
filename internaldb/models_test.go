@@ -69,8 +69,11 @@ var _ = Describe("Models", func() {
 	Describe("find user methods", func () {
 		var (
 			masterUser = DBUser{Type: Master, Username: "master"}
-			bindingUser1 = DBUser{Type: Standard, BindingID: "one", Username: "bind1"}
-			bindingUser2 = DBUser{Type: Standard, BindingID: "two", Username: "bind2"}
+			binding1 = DBBinding{BindingID: "one"}
+			binding2 = DBBinding{BindingID: "two"}
+			binding3 = DBBinding{BindingID: "three"}
+			bindingUser1 = DBUser{Type: Standard, Username: "bind1", Bindings: []DBBinding{binding1}}
+			bindingUser2 = DBUser{Type: Standard, Username: "bind2", Bindings: []DBBinding{binding2, binding3}}
 			instance = DBInstance{Users: []DBUser{bindingUser1, masterUser, bindingUser2}}
 		)
 
@@ -82,15 +85,35 @@ var _ = Describe("Models", func() {
 
 		Describe("BindingUser", func() {
 			It("finds binding 1", func() {
-				Expect(instance.BindingUser("one")).To(Equal(&bindingUser1))
+				user, binding := instance.BindingUser("one")
+				Expect(user).To(Equal(&bindingUser1))
+				Expect(binding).To(Equal(&binding1))
 			})
 
-			It("finds binding 2", func() {
-				Expect(instance.BindingUser("two")).To(Equal(&bindingUser2))
+			It("finds binding 3", func() {
+				user, binding := instance.BindingUser("three")
+				Expect(user).To(Equal(&bindingUser2))
+				Expect(binding).To(Equal(&binding3))
 			})
 
-			It("doesn't find binding 3", func() {
-				Expect(instance.BindingUser("three")).To(BeNil())
+			It("doesn't find binding 4", func() {
+				user, binding := instance.BindingUser("four")
+				Expect(user).To(BeNil())
+				Expect(binding).To(BeNil())
+			})
+		})
+
+		Describe("User", func() {
+			It("finds bind1", func() {
+				Expect(instance.User("bind1")).To(Equal(&bindingUser1))
+			})
+
+			It("finds bind2", func() {
+				Expect(instance.User("bind2")).To(Equal(&bindingUser2))
+			})
+
+			It("doesn't find bind3", func() {
+				Expect(instance.User("bind3")).To(BeNil())
 			})
 		})
 	})
