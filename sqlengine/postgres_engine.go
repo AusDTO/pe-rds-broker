@@ -93,12 +93,29 @@ func (d *PostgresEngine) DropDB(dbname string) error {
 }
 
 func (d *PostgresEngine) CreateUser(username string, password string) error {
-	createUserStatement := "CREATE USER \"" + username + "\" WITH PASSWORD '" + password + "'"
-	d.logger.Debug("create-user", lager.Data{"statement": createUserStatement})
-
-	if _, err := d.db.Exec(createUserStatement); err != nil {
-		d.logger.Error("sql-error", err)
+	// If the user has been created and "dropped" previously, the user will
+	// still exist but with NOLOGIN
+	var exists bool
+	err := d.db.QueryRow("SELECT EXISTS (SELECT 1 FROM pg_roles WHERE rolname=$1)", username).Scan(&exists)
+	if err != nil {
 		return err
+	}
+	if exists {
+		loginStatement := "ALTER ROLE \"" + username + "\" WITH LOGIN PASSWORD '" + password + "'"
+		d.logger.Debug("login", lager.Data{"statement": loginStatement})
+
+		if _, err := d.db.Exec(loginStatement); err != nil {
+			d.logger.Error("sql-error", err)
+			return err
+		}
+	} else {
+		createUserStatement := "CREATE USER \"" + username + "\" WITH PASSWORD '" + password + "'"
+		d.logger.Debug("create-user", lager.Data{"statement": createUserStatement})
+
+		if _, err := d.db.Exec(createUserStatement); err != nil {
+			d.logger.Error("sql-error", err)
+			return err
+		}
 	}
 
 	return nil
@@ -109,7 +126,7 @@ func (d *PostgresEngine) DropUser(username string) error {
 	// We make it so they can't log in instead
 
 	nologinStatement := "ALTER ROLE \"" + username + "\" WITH NOLOGIN"
-	d.logger.Debug("revoke-privileges", lager.Data{"statement": nologinStatement})
+	d.logger.Debug("nologin", lager.Data{"statement": nologinStatement})
 
 	if _, err := d.db.Exec(nologinStatement); err != nil {
 		d.logger.Error("sql-error", err)
