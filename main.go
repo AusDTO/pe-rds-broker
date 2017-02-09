@@ -90,5 +90,5 @@ func main() {
 	http.Handle("/", brokerAPI)
 
 	logger.Info("RDS Service Broker started on port " + port + "...")
-	http.ListenAndServe(":"+port, nil)
+	logger.Fatal("listen-serve", http.ListenAndServe(":"+port, nil))
 }
