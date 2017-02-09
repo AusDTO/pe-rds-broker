@@ -11,6 +11,7 @@ import (
 	"github.com/AusDTO/pe-rds-broker/rdsbroker"
 	"encoding/hex"
 	"github.com/AusDTO/pe-rds-broker/internaldb"
+	"strconv"
 )
 
 type Config struct {
@@ -82,6 +83,19 @@ func LoadEnvConfig() (*EnvConfig, error) {
 	config.InternalDBConfig.DBType = os.Getenv("RDSBROKER_INTERNAL_DB_PROVIDER")
 	if config.InternalDBConfig.DBType != "postgres" && config.InternalDBConfig.DBType != "sqlite3" {
 		return &config, errors.New("Unknown internal DB provider")
+	}
+	config.InternalDBConfig.Username = os.Getenv("RDSBROKER_INTERNAL_DB_USERNAME")
+	config.InternalDBConfig.Password = os.Getenv("RDSBROKER_INTERNAL_DB_PASSWORD")
+	config.InternalDBConfig.Url = os.Getenv("RDSBROKER_INTERNAL_DB_URL")
+	config.InternalDBConfig.Sslmode = os.Getenv("RDSBROKER_INTERNAL_DB_SSLMODE")
+	port_str := os.Getenv("RDSBROKER_INTERNAL_DB_PORT")
+	if port_str != "" {
+		config.InternalDBConfig.Port, err = strconv.Atoi(port_str)
+		if err != nil {
+			return &config, errors.New("Invalid port in environment variable RDSBROKER_INTERNAL_DB_PORT")
+		}
+	} else {
+		config.InternalDBConfig.Port = 5432
 	}
 	config.EncryptionKey, err = hex.DecodeString(os.Getenv("RDSBROKER_ENCRYPTION_KEY"))
 	if err != nil {
