@@ -3,6 +3,7 @@ pkg
 gobin/*
 vendor/
 pe-rds-broker
+db.env
 
 *\.test
 *.coverprofile
