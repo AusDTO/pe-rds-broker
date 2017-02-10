@@ -11,17 +11,19 @@ var _ = Describe("Models", func() {
 	var (
 		encryptionKey = make([]byte, 32)
 		instanceID = "instance-id"
+		dbPrefix = "cf"
 	)
 	Describe("NewInstance", func() {
 		It("creates a master user", func() {
-			instance, err := NewInstance(instanceID, encryptionKey)
+			instance, err := NewInstance(instanceID, dbPrefix, encryptionKey)
 			Expect(err).NotTo(HaveOccurred())
 			Expect(len(instance.Users)).To(Equal(1))
 			Expect(instance.Users[0].Type).To(Equal(Master))
+			Expect(instance.DBName).To(Equal("cf_instance_id"))
 		})
 
 		It("errors with bad encryption key", func () {
-			_, err := NewInstance(instanceID, make([]byte, 3))
+			_, err := NewInstance(instanceID, dbPrefix, make([]byte, 3))
 			Expect(err).To(HaveOccurred())
 		})
 	})

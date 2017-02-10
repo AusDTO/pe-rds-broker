@@ -15,7 +15,7 @@ EOF
     exit 1
 fi
 
-DBNAME=rdsbroker_internaldb
+DBNAME=rdsbroker
 
 if [[ $OP == "create" ]]; then
     createdb $DBNAME
@@ -27,13 +27,19 @@ export RDSBROKER_INTERNAL_DB_PORT=5432
 export RDSBROKER_INTERNAL_DB_USERNAME=$(whoami)
 export RDSBROKER_INTERNAL_DB_PASSWORD=
 export RDSBROKER_INTERNAL_DB_SSLMODE=disable
+export RDSBROKER_SHARED_POSTGRES_DB_NAME=$DBNAME
+export RDSBROKER_SHARED_POSTGRES_DB_URL=localhost
+export RDSBROKER_SHARED_POSTGRES_DB_PORT=5432
+export RDSBROKER_SHARED_POSTGRES_DB_USERNAME=$(whoami)
+export RDSBROKER_SHARED_POSTGRES_DB_PASSWORD=
+export RDSBROKER_SHARED_POSTGRES_DB_SSLMODE=disable
 EOF
     cat <<EOF
 Database $DBNAME created
 Environment variables written to db.env
 
 Note: By default, the broker will connect to your database using TCP. If you
-wish to use unix sockets, change RDSBROKER_INTERNAL_DB_URL to the correct
+wish to use unix sockets, change RDSBROKER_*_DB_URL to the correct
 socket directory for your system (probably either /tmp or /var/run/postgresql).
 
 EOF

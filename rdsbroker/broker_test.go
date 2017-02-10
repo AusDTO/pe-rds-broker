@@ -20,6 +20,7 @@ import (
 	"github.com/AusDTO/pe-rds-broker/internaldb"
 	"os"
 	"github.com/jinzhu/gorm"
+	"github.com/AusDTO/pe-rds-broker/config"
 )
 
 var _ = Describe("RDS Broker", func() {
@@ -32,13 +33,15 @@ var _ = Describe("RDS Broker", func() {
 		service2       Service
 		catalog        Catalog
 
-		config Config
+		configYml Config
 
 		dbInstance *rdsfake.FakeDBInstance
 		dbCluster  *rdsfake.FakeDBCluster
 
-		sqlProvider *sqlfake.FakeProvider
-		sqlEngine   *sqlfake.FakeSQLEngine
+		sqlProvider    *sqlfake.FakeProvider
+		sqlEngine      *sqlfake.FakeSQLEngine
+		sharedPostgres *sqlfake.FakeSQLEngine
+		sharedMysql    *sqlfake.FakeSQLEngine
 
 		testSink *lagertest.TestSink
 		logger   lager.Logger
@@ -74,6 +77,8 @@ var _ = Describe("RDS Broker", func() {
 
 		sqlProvider = &sqlfake.FakeProvider{}
 		sqlEngine = &sqlfake.FakeSQLEngine{}
+		sharedPostgres = &sqlfake.FakeSQLEngine{}
+		sharedMysql = &sqlfake.FakeSQLEngine{}
 		sqlProvider.GetSQLEngineSQLEngine = sqlEngine
 		encryptionKey = make([]byte, 32)
 
@@ -97,7 +102,7 @@ var _ = Describe("RDS Broker", func() {
 		// model to the list. So rm-ing the database it is.
 		os.Remove("/tmp/test.sqlite3")
 		var err error
-		internalDB, err = internaldb.DBInit(&internaldb.DBConfig{DBType: "sqlite3", DBName: "/tmp/test.sqlite3"}, logger)
+		internalDB, err = internaldb.DBInit(&config.DBConfig{DBType: "sqlite3", DBName: "/tmp/test.sqlite3"}, logger)
 		Expect(err).NotTo(HaveOccurred())
 		Expect(internalDB).NotTo(BeNil())
 	})
@@ -137,7 +142,7 @@ var _ = Describe("RDS Broker", func() {
 			Services: []Service{service1, service2},
 		}
 
-		config = Config{
+		configYml = Config{
 			Region:                       "rds-region",
 			DBPrefix:                     "cf",
 			AllowUserProvisionParameters: allowUserProvisionParameters,
@@ -150,8 +155,16 @@ var _ = Describe("RDS Broker", func() {
 		testSink = lagertest.NewTestSink()
 		logger.RegisterSink(testSink)
 
-		rdsBroker = New(config, dbInstance, dbCluster, sqlProvider, logger, internalDB, encryptionKey)
+		rdsBroker = New(configYml, dbInstance, dbCluster, sqlProvider, logger, internalDB, sharedPostgres, sharedMysql, encryptionKey)
 	})
+
+	var MakeInstance = func() *internaldb.DBInstance {
+		instance, err := internaldb.NewInstance(instanceID, configYml.DBPrefix, encryptionKey)
+		Expect(err).NotTo(HaveOccurred())
+		err = internalDB.Save(instance).Error
+		Expect(err).NotTo(HaveOccurred())
+		return instance
+	}
 
 	var _ = Describe("Services", func() {
 		var (
@@ -883,9 +896,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when instance id already exists", func() {
 			BeforeEach(func() {
-				instance, err := internaldb.NewInstance(instanceID, encryptionKey)
-				Expect(err).NotTo(HaveOccurred())
-				internalDB.Save(&instance)
+				MakeInstance()
 			})
 
 			It("returns the proper error", func() {
@@ -898,6 +909,57 @@ var _ = Describe("RDS Broker", func() {
 				_, err := Provision()
 				Expect(err).To(HaveOccurred())
 				Expect(dbInstance.CreateCalled).To(BeFalse())
+			})
+		})
+
+		Context("when shared instance", func() {
+			BeforeEach(func() {
+				rdsProperties1.Shared = true
+				properProvisionedServiceSpec = brokerapi.ProvisionedServiceSpec{
+					IsAsync: false,
+				}
+			})
+
+			Context("with postgres", func() {
+				BeforeEach(func() {
+					rdsProperties1.Engine = "postgres"
+				})
+
+				It("returns the proper response", func() {
+					provisionedServiceSpec, err := Provision()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(provisionedServiceSpec).To(Equal(properProvisionedServiceSpec))
+				})
+
+				It("makes the proper calls", func() {
+					_, err := Provision()
+					Expect(dbInstance.CreateCalled).To(BeFalse())
+					Expect(sharedPostgres.CreateDBCalled).To(BeTrue())
+					Expect(sharedPostgres.CreateDBDBName).To(Equal(dbName))
+					Expect(sharedMysql.CreateDBCalled).To(BeFalse())
+					Expect(err).ToNot(HaveOccurred())
+				})
+			})
+
+			Context("with mysql", func() {
+				BeforeEach(func() {
+					rdsProperties1.Engine = "mysql"
+				})
+
+				It("returns the proper response", func() {
+					provisionedServiceSpec, err := Provision()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(provisionedServiceSpec).To(Equal(properProvisionedServiceSpec))
+				})
+
+				It("makes the proper calls", func() {
+					_, err := Provision()
+					Expect(dbInstance.CreateCalled).To(BeFalse())
+					Expect(sharedPostgres.CreateDBCalled).To(BeFalse())
+					Expect(sharedMysql.CreateDBCalled).To(BeTrue())
+					Expect(sharedMysql.CreateDBDBName).To(Equal(dbName))
+					Expect(err).ToNot(HaveOccurred())
+				})
 			})
 		})
 
@@ -972,9 +1034,7 @@ var _ = Describe("RDS Broker", func() {
 				},
 			}
 			acceptsIncomplete = true
-			instance, err := internaldb.NewInstance(instanceID, encryptionKey)
-			Expect(err).NotTo(HaveOccurred())
-			internalDB.Save(&instance)
+			MakeInstance()
 		})
 
 		Update := func() (brokerapi.UpdateServiceSpec, error) {
@@ -1688,9 +1748,7 @@ var _ = Describe("RDS Broker", func() {
 				PlanID:    "Plan-1",
 			}
 			acceptsIncomplete = true
-			instance, err := internaldb.NewInstance(instanceID, encryptionKey)
-			Expect(err).NotTo(HaveOccurred())
-			internalDB.Save(&instance)
+			MakeInstance()
 		})
 
 		Deprovision := func() (brokerapi.DeprovisionServiceSpec, error) {
@@ -1779,6 +1837,66 @@ var _ = Describe("RDS Broker", func() {
 			})
 		})
 
+		Context("when shared instance", func() {
+			BeforeEach(func() {
+				rdsProperties1.Shared = true
+			})
+
+			Context("with postgres", func() {
+				BeforeEach(func() {
+					rdsProperties1.Engine = "postgres"
+				})
+
+				It("returns the proper response", func() {
+					deprovisionSpec, err := Deprovision()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(deprovisionSpec.IsAsync).To(BeFalse())
+				})
+
+				It("makes the proper calls", func() {
+					_, err := Deprovision()
+					Expect(dbInstance.DeleteCalled).To(BeFalse())
+					Expect(sharedPostgres.DropDBCalled).To(BeTrue())
+					Expect(sharedPostgres.DropDBDBName).To(Equal(dbName))
+					Expect(sharedMysql.DropDBCalled).To(BeFalse())
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It ("deletes the internaldb instance", func() {
+					_, err := Deprovision()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(internaldb.FindInstance(internalDB, instanceID)).To(BeNil())
+				})
+			})
+
+			Context("with mysql", func() {
+				BeforeEach(func() {
+					rdsProperties1.Engine = "mysql"
+				})
+
+				It("returns the proper response", func() {
+					deprovisionSpec, err := Deprovision()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(deprovisionSpec.IsAsync).To(BeFalse())
+				})
+
+				It("makes the proper calls", func() {
+					_, err := Deprovision()
+					Expect(dbInstance.DeleteCalled).To(BeFalse())
+					Expect(sharedPostgres.DropDBCalled).To(BeFalse())
+					Expect(sharedMysql.DropDBCalled).To(BeTrue())
+					Expect(sharedMysql.DropDBDBName).To(Equal(dbName))
+					Expect(err).ToNot(HaveOccurred())
+				})
+
+				It ("deletes the internaldb instance", func() {
+					_, err := Deprovision()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(internaldb.FindInstance(internalDB, instanceID)).To(BeNil())
+				})
+			})
+		})
+
 		Context("when Engine is Aurora", func() {
 			BeforeEach(func() {
 				rdsProperties1.Engine = "aurora"
@@ -1848,11 +1966,7 @@ var _ = Describe("RDS Broker", func() {
 				Port:           3306,
 				DatabaseName:   "test-db",
 			}
-			var err error
-			instance, err = internaldb.NewInstance(instanceID, encryptionKey)
-			Expect(err).NotTo(HaveOccurred())
-			err = internalDB.Save(instance).Error
-			Expect(err).NotTo(HaveOccurred())
+			instance = MakeInstance()
 		})
 
 		Bind := func() (brokerapi.Binding, error) {
@@ -2164,13 +2278,9 @@ var _ = Describe("RDS Broker", func() {
 				Port:           3306,
 				DatabaseName:   "test-db",
 			}
-			instance, err := internaldb.NewInstance(instanceID, encryptionKey)
-			Expect(err).NotTo(HaveOccurred())
-			// Save first to set ids before creating binding user
-			err = internalDB.Save(&instance).Error
-			Expect(err).NotTo(HaveOccurred())
+			instance := MakeInstance()
 			dbUsername = "username"
-			_, _, err = instance.Bind(internalDB, bindingID, dbUsername, internaldb.Standard, encryptionKey)
+			_, _, err := instance.Bind(internalDB, bindingID, dbUsername, internaldb.Standard, encryptionKey)
 			Expect(err).NotTo(HaveOccurred())
 		})
 
@@ -2360,9 +2470,7 @@ var _ = Describe("RDS Broker", func() {
 				State:       lastOperationState,
 				Description: "DB Instance '" + dbInstanceIdentifier + "' status is '" + dbInstanceStatus + "'",
 			}
-			instance, err := internaldb.NewInstance(instanceID, encryptionKey)
-			Expect(err).NotTo(HaveOccurred())
-			internalDB.Save(&instance)
+			MakeInstance()
 		})
 
 		LastOperation := func() (brokerapi.LastOperation, error) {

@@ -7,6 +7,7 @@ import (
 	_ "github.com/lib/pq" // PostgreSQL Driver
 
 	"code.cloudfoundry.org/lager"
+	"github.com/AusDTO/pe-rds-broker/config"
 )
 
 type PostgresEngine struct {
@@ -20,8 +21,8 @@ func NewPostgresEngine(logger lager.Logger) *PostgresEngine {
 	}
 }
 
-func (d *PostgresEngine) Open(address string, port int64, dbname string, username string, password string) error {
-	connectionString := d.connectionString(address, port, dbname, username, password)
+func (d *PostgresEngine) Open(address string, port int64, dbname string, username string, password string, sslmode config.SSLMode) error {
+	connectionString := d.connectionString(address, port, dbname, username, password, sslmode)
 	d.logger.Debug("sql-open", lager.Data{"connection-string": connectionString})
 
 	db, err := sql.Open("postgres", connectionString)
@@ -62,6 +63,7 @@ func (d *PostgresEngine) CreateDB(dbname string) error {
 		return err
 	}
 	if ok {
+		d.logger.Debug("db-already-exists", lager.Data{"dbname": dbname})
 		return nil
 	}
 
@@ -180,6 +182,6 @@ func (d *PostgresEngine) dropConnections(dbname string) error {
 	return nil
 }
 
-func (d *PostgresEngine) connectionString(address string, port int64, dbname string, username string, password string) string {
-	return fmt.Sprintf("host=%s port=%d dbname=%s user='%s' password='%s'", address, port, dbname, username, password)
+func (d *PostgresEngine) connectionString(address string, port int64, dbname string, username string, password string, sslmode config.SSLMode) string {
+	return fmt.Sprintf("host=%s port=%d dbname=%s user='%s' password='%s' sslmode='%s'", address, port, dbname, username, password, sslmode)
 }

@@ -2,6 +2,7 @@ package fakes
 
 import (
 	"fmt"
+	"github.com/AusDTO/pe-rds-broker/config"
 )
 
 type FakeSQLEngine struct {
@@ -11,6 +12,7 @@ type FakeSQLEngine struct {
 	OpenDBName   string
 	OpenUsername string
 	OpenPassword string
+	OpenSSLMode  config.SSLMode
 	OpenError    error
 
 	CloseCalled bool
@@ -47,13 +49,14 @@ type FakeSQLEngine struct {
 	RevokePrivilegesError    error
 }
 
-func (f *FakeSQLEngine) Open(address string, port int64, dbname string, username string, password string) error {
+func (f *FakeSQLEngine) Open(address string, port int64, dbname string, username string, password string, sslmode config.SSLMode) error {
 	f.OpenCalled = true
 	f.OpenAddress = address
 	f.OpenPort = port
 	f.OpenDBName = dbname
 	f.OpenUsername = username
 	f.OpenPassword = password
+	f.OpenSSLMode = sslmode
 
 	return f.OpenError
 }

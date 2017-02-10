@@ -92,6 +92,7 @@ type RDSProperties struct {
 	VpcSecurityGroupIds         []string `json:"vpc_security_group_ids,omitempty" yaml:"vpc_security_group_ids,omitempty"`
 	CopyTagsToSnapshot          bool     `json:"copy_tags_to_snapshot,omitempty" yaml:"copy_tags_to_snapshot,omitempty"`
 	SkipFinalSnapshot           bool     `json:"skip_final_snapshot,omitempty" yaml:"skip_final_snapshot,omitempty"`
+	Shared                      bool     `json:"shared" yaml:"shared"`
 }
 
 func (c Catalog) Validate() error {
@@ -145,6 +146,9 @@ func (s Service) Validate() error {
 		if err := servicePlan.Validate(); err != nil {
 			return fmt.Errorf("Validating Plans configuration: %s", err)
 		}
+		if s.PlanUpdateable && servicePlan.RDSProperties.Shared {
+			return fmt.Errorf("Cannot have an updateable service with shared plans (%+v)", s)
+		}
 	}
 
 	return nil
@@ -171,7 +175,7 @@ func (sp ServicePlan) Validate() error {
 }
 
 func (rp RDSProperties) Validate() error {
-	if rp.DBInstanceClass == "" {
+	if !rp.Shared && rp.DBInstanceClass == "" {
 		return fmt.Errorf("Must provide a non-empty DBInstanceClass (%+v)", rp)
 	}
 
@@ -186,6 +190,15 @@ func (rp RDSProperties) Validate() error {
 	case "postgres":
 	default:
 		return fmt.Errorf("This broker does not support RDS engine '%s' (%+v)", rp.Engine, rp)
+	}
+
+	if rp.Shared {
+		switch strings.ToLower(rp.Engine) {
+		case "mysql":
+		case "postgres":
+		default:
+			return fmt.Errorf("This broker does not support RDS engine '%s' with a shared instance (%+v)", rp.Engine, rp)
+		}
 	}
 
 	return nil

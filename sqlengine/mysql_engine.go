@@ -7,6 +7,7 @@ import (
 	_ "github.com/go-sql-driver/mysql" // MySQL Driver
 
 	"code.cloudfoundry.org/lager"
+	"github.com/AusDTO/pe-rds-broker/config"
 )
 
 type MySQLEngine struct {
@@ -20,8 +21,8 @@ func NewMySQLEngine(logger lager.Logger) *MySQLEngine {
 	}
 }
 
-func (d *MySQLEngine) Open(address string, port int64, dbname string, username string, password string) error {
-	connectionString := d.connectionString(address, port, dbname, username, password)
+func (d *MySQLEngine) Open(address string, port int64, dbname string, username string, password string, sslmode config.SSLMode) error {
+	connectionString := d.connectionString(address, port, dbname, username, password, sslmode)
 	d.logger.Debug("sql-open", lager.Data{"connection-string": connectionString})
 
 	db, err := sql.Open("mysql", connectionString)
@@ -144,6 +145,12 @@ func (d *MySQLEngine) JDBCURI(address string, port int64, dbname string, usernam
 	return fmt.Sprintf("jdbc:mysql://%s:%d/%s?user=%s&password=%s", address, port, dbname, username, password)
 }
 
-func (d *MySQLEngine) connectionString(address string, port int64, dbname string, username string, password string) string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s", username, password, address, port, dbname)
+func (d *MySQLEngine) connectionString(address string, port int64, dbname string, username string, password string, sslmode config.SSLMode) string {
+	var tls string
+	switch sslmode {
+	case config.Disable: tls = "false"
+	case config.RequireNoVerify: tls = "skip-verify"
+	case config.Verify: tls = "true"
+	}
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?tcp=%s", username, password, address, port, dbname, tls)
 }

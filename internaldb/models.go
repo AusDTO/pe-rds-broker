@@ -6,6 +6,8 @@ import (
 	"database/sql/driver"
 	"github.com/jinzhu/gorm"
 	"errors"
+	"fmt"
+	"strings"
 )
 
 type DBInstance struct {
@@ -15,6 +17,7 @@ type DBInstance struct {
 	UpdatedAt time.Time
 	// Managed by us
 	InstanceID string `gorm:"unique_index"`
+	DBName string
 	Users []DBUser
 
 }
@@ -49,10 +52,11 @@ const (
 )
 
 // Remember to DB.Save() from the caller
-func NewInstance(instanceID string, key []byte) (*DBInstance, error) {
+func NewInstance(instanceID, dbPrefix string, key []byte) (*DBInstance, error) {
 	instance := DBInstance{
 		InstanceID: instanceID,
 		Users: make([]DBUser, 1),
+		DBName: fmt.Sprintf("%s_%s", dbPrefix, strings.Replace(instanceID, "-", "_", -1)),
 	}
 	var err error
 	instance.Users[0], err = NewUser(Master, key)
@@ -213,6 +217,10 @@ func (i *DBInstance) User(username string) *DBUser {
 		}
 	}
 	return nil
+}
+
+func (i *DBInstance) UnderscoreID() string {
+	return strings.Replace(i.InstanceID, "-", "_", -1)
 }
 
 // Ensure custom string type works with gorm/sql
