@@ -37,7 +37,7 @@ var _ = Describe("RandUsername", func() {
 		for i := 0; i < 10; i++ {
 			username, err := RandUsername()
 			Expect(err).NotTo(HaveOccurred())
-			Expect(username).To(MatchRegexp("^[[:alpha:]][_[:alnum:]]*$"))
+			Expect(IsSimpleIdentifier(username)).To(BeTrue())
 		}
 	})
 })
@@ -64,5 +64,20 @@ var _ = Describe("RandPassword", func() {
 			Expect(strings.ContainsAny(password, "/@\" ")).To(BeFalse(),
 				"Password shouldn't contain special characters %s", password)
 		}
+	})
+})
+
+var _ = Describe("IsSimpleIdentifier", func() {
+	It("allows valid strings", func() {
+		Expect(IsSimpleIdentifier("hi")).To(BeTrue())
+		Expect(IsSimpleIdentifier("hi123")).To(BeTrue())
+		Expect(IsSimpleIdentifier("HI")).To(BeTrue())
+		Expect(IsSimpleIdentifier("hi_there")).To(BeTrue())
+		Expect(IsSimpleIdentifier("")).To(BeTrue())
+	})
+
+	It("rejects invalid strings", func() {
+		Expect(IsSimpleIdentifier("*")).To(BeFalse())
+		Expect(IsSimpleIdentifier("123hi")).To(BeFalse())
 	})
 })

@@ -16,7 +16,6 @@ import (
 	"github.com/AusDTO/pe-rds-broker/awsrds"
 	"github.com/AusDTO/pe-rds-broker/sqlengine"
 	"github.com/AusDTO/pe-rds-broker/internaldb"
-	"regexp"
 	"github.com/AusDTO/pe-rds-broker/utils"
 	"github.com/AusDTO/pe-rds-broker/config"
 )
@@ -303,7 +302,7 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 		if err := mapstructure.Decode(details.Parameters, &bindParameters); err != nil {
 			return binding, err
 		}
-		if !regexp.MustCompile("^$|^[[:alpha:]][_[:alnum:]]*$").MatchString(bindParameters.Username) {
+		if !utils.IsSimpleIdentifier(bindParameters.Username) {
 			return binding, errors.New("Username must begin with a letter and contain only alphanumeric characters")
 		}
 	}

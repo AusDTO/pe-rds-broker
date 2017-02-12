@@ -6,6 +6,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"strings"
+	"regexp"
 )
 
 // Must be a multiple of 4
@@ -69,4 +70,8 @@ func RandUsername() (string, error) {
 		return "", err
 	}
 	return "u" + strings.Replace(username, "-", "_", -1), nil
+}
+
+func IsSimpleIdentifier(arg string) bool {
+	return regexp.MustCompile("^$|^[[:alpha:]][_[:alnum:]]*$").MatchString(arg)
 }
