@@ -17,7 +17,9 @@ type DBInstance struct {
 	UpdatedAt time.Time
 	// Managed by us
 	InstanceID string `gorm:"unique_index"`
-	DBName string
+	DBName     string
+	ServiceID  string
+	PlanID     string
 	Users []DBUser
 
 }
@@ -52,8 +54,10 @@ const (
 )
 
 // Remember to DB.Save() from the caller
-func NewInstance(instanceID, dbPrefix string, key []byte) (*DBInstance, error) {
+func NewInstance(serviceID, planID, instanceID, dbPrefix string, key []byte) (*DBInstance, error) {
 	instance := DBInstance{
+		ServiceID: serviceID,
+		PlanID: planID,
 		InstanceID: instanceID,
 		Users: make([]DBUser, 1),
 		DBName: fmt.Sprintf("%s_%s", dbPrefix, strings.Replace(instanceID, "-", "_", -1)),

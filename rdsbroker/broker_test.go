@@ -159,7 +159,7 @@ var _ = Describe("RDS Broker", func() {
 	})
 
 	var MakeInstance = func() *internaldb.DBInstance {
-		instance, err := internaldb.NewInstance(instanceID, configYml.DBPrefix, encryptionKey)
+		instance, err := internaldb.NewInstance(service1.ID, plan1.ID, instanceID, configYml.DBPrefix, encryptionKey)
 		Expect(err).NotTo(HaveOccurred())
 		err = internalDB.Save(instance).Error
 		Expect(err).NotTo(HaveOccurred())
@@ -2698,6 +2698,18 @@ var _ = Describe("RDS Broker", func() {
 					Expect(err).ToNot(HaveOccurred())
 					Expect(lastOperationResponse).To(Equal(properLastOperationResponse))
 				})
+			})
+		})
+
+		Context("when shared instance", func() {
+			BeforeEach(func() {
+				rdsProperties1.Shared = true
+			})
+
+			It("returns failed", func() {
+				lastOperationResponse, err := LastOperation()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(lastOperationResponse.State).To(Equal(brokerapi.Failed))
 			})
 		})
 	})

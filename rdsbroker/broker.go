@@ -133,7 +133,7 @@ func (b *RDSBroker) Provision(context context.Context, instanceID string, detail
 		return provisionSpec, errors.New("Instance already exists")
 	}
 
-	instance, err := internaldb.NewInstance(instanceID, b.dbPrefix, b.encryptionKey)
+	instance, err := internaldb.NewInstance(details.ServiceID, details.PlanID, instanceID, b.dbPrefix, b.encryptionKey)
 	if err != nil {
 		return provisionSpec, err
 	}
@@ -432,6 +432,16 @@ func (b *RDSBroker) LastOperation(context context.Context, instanceID, operation
 	instance := internaldb.FindInstance(b.internalDB, instanceID)
 	if instance == nil {
 		return lastOperation, errors.New("Unknown instance ID")
+	}
+
+	servicePlan, found := b.catalog.FindServicePlan(instance.ServiceID, instance.PlanID)
+	if !found {
+		return lastOperation, errors.New("Unknown service plan")
+	}
+
+	if servicePlan.RDSProperties.Shared {
+		// shared instances don't have async operations
+		return brokerapi.LastOperation{State: brokerapi.Failed, Description: "No last operation"}, nil
 	}
 
 	dbInstanceDetails, err := b.dbInstance.Describe(b.dbInstanceIdentifier(instance))
