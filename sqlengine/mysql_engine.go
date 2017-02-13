@@ -156,7 +156,7 @@ func (d *MySQLEngine) connectionString(dbname string, username string, password 
 	case config.RequireNoVerify: tls = "skip-verify"
 	case config.Verify: tls = "true"
 	}
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?tcp=%s", username, password, d.address, d.port, dbname, tls)
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?tls=%s", username, password, d.address, d.port, dbname, tls)
 }
 
 func (d *MySQLEngine) Address() string {
