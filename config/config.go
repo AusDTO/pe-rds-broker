@@ -83,6 +83,5 @@ func loadDBEnvConfig(version string, defaultPort int64) (*DBConfig, error) {
 	} else {
 		dbconfig.Port = defaultPort
 	}
-	fmt.Printf("%+v\n", dbconfig)
 	return &dbconfig, nil
 }
