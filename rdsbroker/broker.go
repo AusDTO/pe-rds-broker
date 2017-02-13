@@ -16,8 +16,8 @@ import (
 	"github.com/AusDTO/pe-rds-broker/awsrds"
 	"github.com/AusDTO/pe-rds-broker/sqlengine"
 	"github.com/AusDTO/pe-rds-broker/internaldb"
-	"regexp"
 	"github.com/AusDTO/pe-rds-broker/utils"
+	"github.com/AusDTO/pe-rds-broker/config"
 )
 
 const instanceIDLogKey = "instance-id"
@@ -49,6 +49,7 @@ type RDSBroker struct {
 	sqlProvider                  sqlengine.Provider
 	logger                       lager.Logger
 	internalDB                   *gorm.DB
+	sharedEngines                map[string]sqlengine.SQLEngine
 	encryptionKey                []byte
 }
 
@@ -59,6 +60,8 @@ func New(
 	sqlProvider sqlengine.Provider,
 	logger lager.Logger,
 	internalDB *gorm.DB,
+	sharedPostgres sqlengine.SQLEngine,
+	sharedMysql sqlengine.SQLEngine,
 	encryptionKey []byte,
 ) *RDSBroker {
 	return &RDSBroker{
@@ -72,6 +75,7 @@ func New(
 		sqlProvider:                  sqlProvider,
 		logger:                       logger.Session("broker"),
 		internalDB:                   internalDB,
+		sharedEngines:                map[string]sqlengine.SQLEngine{"postgres": sharedPostgres, "mysql": sharedMysql},
 		encryptionKey:                encryptionKey,
 	}
 }
@@ -129,26 +133,35 @@ func (b *RDSBroker) Provision(context context.Context, instanceID string, detail
 		return provisionSpec, errors.New("Instance already exists")
 	}
 
-	instance, err := internaldb.NewInstance(instanceID, b.encryptionKey)
+	instance, err := internaldb.NewInstance(details.ServiceID, details.PlanID, instanceID, b.dbPrefix, b.encryptionKey)
 	if err != nil {
 		return provisionSpec, err
 	}
 
-	if strings.ToLower(servicePlan.RDSProperties.Engine) == "aurora" {
-		createDBCluster := b.createDBCluster(instance, servicePlan, provisionParameters, details)
-		if err = b.dbCluster.Create(b.dbClusterIdentifier(instance), *createDBCluster); err != nil {
+	if servicePlan.RDSProperties.Shared {
+		sqlEngine := b.sharedEngines[servicePlan.RDSProperties.Engine]
+		err := sqlEngine.CreateDB(instance.DBName)
+		if err != nil {
 			return provisionSpec, err
 		}
-		defer func() {
-			if err != nil {
-				b.dbCluster.Delete(b.dbClusterIdentifier(instance), servicePlan.RDSProperties.SkipFinalSnapshot)
+		provisionSpec.IsAsync = false
+	} else {
+		if strings.ToLower(servicePlan.RDSProperties.Engine) == "aurora" {
+			createDBCluster := b.createDBCluster(instance, servicePlan, provisionParameters, details)
+			if err = b.dbCluster.Create(b.dbClusterIdentifier(instance), *createDBCluster); err != nil {
+				return provisionSpec, err
 			}
-		}()
-	}
+			defer func() {
+				if err != nil {
+					b.dbCluster.Delete(b.dbClusterIdentifier(instance), servicePlan.RDSProperties.SkipFinalSnapshot)
+				}
+			}()
+		}
 
-	createDBInstance := b.createDBInstance(instance, servicePlan, provisionParameters, details)
-	if err = b.dbInstance.Create(b.dbInstanceIdentifier(instance), *createDBInstance); err != nil {
-		return provisionSpec, err
+		createDBInstance := b.createDBInstance(instance, servicePlan, provisionParameters, details)
+		if err = b.dbInstance.Create(b.dbInstanceIdentifier(instance), *createDBInstance); err != nil {
+			return provisionSpec, err
+		}
 	}
 
 	if err = b.internalDB.Save(instance).Error; err != nil {
@@ -244,19 +257,33 @@ func (b *RDSBroker) Deprovision(context context.Context, instanceID string, deta
 		skipDBInstanceFinalSnapshot = true
 	}
 
-	if err := b.dbInstance.Delete(b.dbInstanceIdentifier(instance), skipDBInstanceFinalSnapshot); err != nil {
-		if err == awsrds.ErrDBInstanceDoesNotExist {
-			return deprovisionSpec, brokerapi.ErrInstanceDoesNotExist
+	if servicePlan.RDSProperties.Shared {
+		sqlEngine := b.sharedEngines[servicePlan.RDSProperties.Engine]
+		err := sqlEngine.DropDB(instance.DBName)
+		if err != nil {
+			return deprovisionSpec, err
 		}
-		return deprovisionSpec, err
-	}
+		err = instance.Delete(b.internalDB)
+		if err != nil {
+			// log an move on because the real database is gone
+			b.logger.Error("delete-instance", err)
+		}
+		deprovisionSpec.IsAsync = false
+	} else {
+		if err := b.dbInstance.Delete(b.dbInstanceIdentifier(instance), skipDBInstanceFinalSnapshot); err != nil {
+			if err == awsrds.ErrDBInstanceDoesNotExist {
+				return deprovisionSpec, brokerapi.ErrInstanceDoesNotExist
+			}
+			return deprovisionSpec, err
+		}
 
-	if strings.ToLower(servicePlan.RDSProperties.Engine) == "aurora" {
-		b.dbCluster.Delete(b.dbClusterIdentifier(instance), servicePlan.RDSProperties.SkipFinalSnapshot)
-	}
+		if strings.ToLower(servicePlan.RDSProperties.Engine) == "aurora" {
+			b.dbCluster.Delete(b.dbClusterIdentifier(instance), servicePlan.RDSProperties.SkipFinalSnapshot)
+		}
 
-	// We do not delete the internal reference to the DB here because we've only started the delete process
-	// and we still need the reference for LastOperation()
+		// We do not delete the internal reference to the DB here because we've only started the delete process
+		// and we still need the reference for LastOperation()
+	}
 
 	return deprovisionSpec, nil
 }
@@ -275,7 +302,7 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 		if err := mapstructure.Decode(details.Parameters, &bindParameters); err != nil {
 			return binding, err
 		}
-		if !regexp.MustCompile("^$|^[[:alpha:]][_[:alnum:]]*$").MatchString(bindParameters.Username) {
+		if !utils.IsSimpleIdentifier(bindParameters.Username) {
 			return binding, errors.New("Username must begin with a letter and contain only alphanumeric characters")
 		}
 	}
@@ -299,29 +326,17 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 		return binding, errors.New("Unknown instance ID")
 	}
 
-	dbAddress, dbName, dbPort, err := b.dbConnInfo(instance, servicePlan.RDSProperties.Engine)
-	if err != nil {
-		return binding, err
+	var sqlEngine sqlengine.SQLEngine
+	if servicePlan.RDSProperties.Shared {
+		sqlEngine = b.sharedEngines[servicePlan.RDSProperties.Engine]
+	} else {
+		var err error
+		sqlEngine, err = b.dedicatedSqlEngine(instance, servicePlan.RDSProperties.Engine)
+		if err != nil {
+			return binding, err
+		}
+		defer sqlEngine.Close()
 	}
-
-	masterUser := instance.MasterUser()
-	if masterUser == nil {
-		return binding, err
-	}
-	masterPassword, err := masterUser.Password(b.encryptionKey)
-	if err != nil {
-		return binding, err
-	}
-
-	sqlEngine, err := b.sqlProvider.GetSQLEngine(servicePlan.RDSProperties.Engine)
-	if err != nil {
-		return binding, err
-	}
-
-	if err = sqlEngine.Open(dbAddress, dbPort, dbName, masterUser.Username, masterPassword); err != nil {
-		return binding, err
-	}
-	defer sqlEngine.Close()
 
 	user, new, err := instance.Bind(b.internalDB, bindingID, b.dbUsername(bindParameters.Username, details.AppGUID), internaldb.Standard, b.encryptionKey)
 	if err != nil {
@@ -338,19 +353,19 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 			return binding, err
 		}
 
-		if err = sqlEngine.GrantPrivileges(dbName, user.Username); err != nil {
+		if err = sqlEngine.GrantPrivileges(instance.DBName, user.Username); err != nil {
 			return binding, err
 		}
 	}
 
 	binding.Credentials = &CredentialsHash{
-		Host:     dbAddress,
-		Port:     dbPort,
-		Name:     dbName,
+		Host:     sqlEngine.Address(),
+		Port:     sqlEngine.Port(),
+		Name:     instance.DBName,
 		Username: user.Username,
 		Password: userPassword,
-		URI:      sqlEngine.URI(dbAddress, dbPort, dbName, user.Username, userPassword),
-		JDBCURI:  sqlEngine.JDBCURI(dbAddress, dbPort, dbName, user.Username, userPassword),
+		URI:      sqlEngine.URI(instance.DBName, user.Username, userPassword),
+		JDBCURI:  sqlEngine.JDBCURI(instance.DBName, user.Username, userPassword),
 	}
 
 	return binding, nil
@@ -373,37 +388,24 @@ func (b *RDSBroker) Unbind(context context.Context, instanceID, bindingID string
 		return errors.New("Unknown instance ID")
 	}
 
-	dbAddress, dbName, dbPort, err := b.dbConnInfo(instance, servicePlan.RDSProperties.Engine)
-	if err != nil {
-		return err
-	}
-
-	masterUser := instance.MasterUser()
-	if masterUser == nil {
-		return err
-	}
-	masterPassword, err := masterUser.Password(b.encryptionKey)
-	if err != nil {
-		return err
-	}
-
-	sqlEngine, err := b.sqlProvider.GetSQLEngine(servicePlan.RDSProperties.Engine)
-	if err != nil {
-		return err
-	}
-
-	if err = sqlEngine.Open(dbAddress, dbPort, dbName, masterUser.Username, masterPassword); err != nil {
-		return err
-	}
-	defer sqlEngine.Close()
-
 	user, delete, err := instance.Unbind(b.internalDB, bindingID)
 	if err != nil {
 		return err
 	}
 
 	if delete {
-		if err = sqlEngine.RevokePrivileges(dbName, user.Username); err != nil {
+		var sqlEngine sqlengine.SQLEngine
+		if servicePlan.RDSProperties.Shared {
+			sqlEngine = b.sharedEngines[servicePlan.RDSProperties.Engine]
+		} else {
+			sqlEngine, err = b.dedicatedSqlEngine(instance, servicePlan.RDSProperties.Engine)
+			if err != nil {
+				return err
+			}
+			defer sqlEngine.Close()
+		}
+
+		if err = sqlEngine.RevokePrivileges(instance.DBName, user.Username); err != nil {
 			return err
 		}
 
@@ -430,6 +432,16 @@ func (b *RDSBroker) LastOperation(context context.Context, instanceID, operation
 	instance := internaldb.FindInstance(b.internalDB, instanceID)
 	if instance == nil {
 		return lastOperation, errors.New("Unknown instance ID")
+	}
+
+	servicePlan, found := b.catalog.FindServicePlan(instance.ServiceID, instance.PlanID)
+	if !found {
+		return lastOperation, errors.New("Unknown service plan")
+	}
+
+	if servicePlan.RDSProperties.Shared {
+		// shared instances don't have async operations
+		return brokerapi.LastOperation{State: brokerapi.Failed, Description: "No last operation"}, nil
 	}
 
 	dbInstanceDetails, err := b.dbInstance.Describe(b.dbInstanceIdentifier(instance))
@@ -468,10 +480,6 @@ func (b *RDSBroker) dbInstanceIdentifier(instance *internaldb.DBInstance) string
 	return fmt.Sprintf("%s-%s", b.dbPrefix, strings.Replace(instance.InstanceID, "_", "-", -1))
 }
 
-func (b *RDSBroker) dbName(instance *internaldb.DBInstance) string {
-	return fmt.Sprintf("%s_%s", b.dbPrefix, strings.Replace(instance.InstanceID, "-", "_", -1))
-}
-
 // requestedUsername should have already been tested for validity
 func (b *RDSBroker) dbUsername(requestedUsername, appID string) string {
 	if requestedUsername != "" {
@@ -500,7 +508,7 @@ func (b *RDSBroker) dbConnInfo(instance *internaldb.DBInstance, engine string) (
 		if dbClusterDetails.DatabaseName != "" {
 			dbName = dbClusterDetails.DatabaseName
 		} else {
-			dbName = b.dbName(instance)
+			dbName = instance.DBName
 		}
 	} else {
 		var dbInstanceDetails awsrds.DBInstanceDetails
@@ -517,15 +525,43 @@ func (b *RDSBroker) dbConnInfo(instance *internaldb.DBInstance, engine string) (
 		if dbInstanceDetails.DBName != "" {
 			dbName = dbInstanceDetails.DBName
 		} else {
-			dbName = b.dbName(instance)
+			dbName = instance.DBName
 		}
+	}
+	return
+}
+
+func (b *RDSBroker) dedicatedSqlEngine(instance *internaldb.DBInstance, engine string) (sqlEngine sqlengine.SQLEngine, err error) {
+	dbAddress, dbName, dbPort, err := b.dbConnInfo(instance, engine)
+	if err != nil {
+		return
+	}
+
+	masterUser := instance.MasterUser()
+	if masterUser == nil {
+		err = errors.New("Failed to find master user")
+		return
+	}
+	masterPassword, err := masterUser.Password(b.encryptionKey)
+	if err != nil {
+		return
+	}
+
+	sqlEngine, err = b.sqlProvider.GetSQLEngine(engine)
+	if err != nil {
+		return
+	}
+
+	err = sqlEngine.Open(dbAddress, dbPort, dbName, masterUser.Username, masterPassword, config.Verify)
+	if err != nil {
+		return
 	}
 	return
 }
 
 func (b *RDSBroker) createDBCluster(instance *internaldb.DBInstance, servicePlan ServicePlan, provisionParameters ProvisionParameters, details brokerapi.ProvisionDetails) *awsrds.DBClusterDetails {
 	dbClusterDetails := b.dbClusterFromPlan(servicePlan)
-	dbClusterDetails.DatabaseName = b.dbName(instance)
+	dbClusterDetails.DatabaseName = instance.DBName
 	dbClusterDetails.MasterUsername = instance.MasterUser().Username
 	var err error
 	dbClusterDetails.MasterUserPassword, err = instance.MasterUser().Password(b.encryptionKey)
@@ -621,7 +657,7 @@ func (b *RDSBroker) createDBInstance(instance *internaldb.DBInstance, servicePla
 	if strings.ToLower(servicePlan.RDSProperties.Engine) == "aurora" {
 		dbInstanceDetails.DBClusterIdentifier = b.dbClusterIdentifier(instance)
 	} else {
-		dbInstanceDetails.DBName = b.dbName(instance)
+		dbInstanceDetails.DBName = instance.DBName
 		dbInstanceDetails.MasterUsername = instance.MasterUser().Username
 		var err error
 		dbInstanceDetails.MasterUserPassword, err = instance.MasterUser().Password(b.encryptionKey)

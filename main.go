@@ -15,6 +15,7 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 
 	"github.com/AusDTO/pe-rds-broker/awsrds"
+	"github.com/AusDTO/pe-rds-broker/config"
 	"github.com/AusDTO/pe-rds-broker/internaldb"
 	"github.com/AusDTO/pe-rds-broker/rdsbroker"
 	"github.com/AusDTO/pe-rds-broker/sqlengine"
@@ -52,38 +53,56 @@ func buildLogger(logLevel string) lager.Logger {
 func main() {
 	flag.Parse()
 
-	config, err := LoadConfig(configFilePath)
+	configYml, err := LoadConfig(configFilePath)
 	if err != nil {
 		log.Fatalf("Error loading config file: %s", err)
 	}
 
-	logger := buildLogger(config.LogLevel)
+	logger := buildLogger(configYml.LogLevel)
 
-	envConfig, err := LoadEnvConfig()
+	envConfig, err := config.LoadEnvConfig()
 	if err != nil {
 		logger.Fatal("load-environment", err)
 	}
 
-	awsConfig := aws.NewConfig().WithRegion(config.RDSConfig.Region)
+	awsConfig := aws.NewConfig().WithRegion(configYml.RDSConfig.Region)
 	awsSession := session.New(awsConfig)
 
 	iamsvc := iam.New(awsSession)
 	rdssvc := rds.New(awsSession)
-	dbInstance := awsrds.NewRDSDBInstance(config.RDSConfig.Region, iamsvc, rdssvc, logger)
-	dbCluster := awsrds.NewRDSDBCluster(config.RDSConfig.Region, iamsvc, rdssvc, logger)
+	dbInstance := awsrds.NewRDSDBInstance(configYml.RDSConfig.Region, iamsvc, rdssvc, logger)
+	dbCluster := awsrds.NewRDSDBCluster(configYml.RDSConfig.Region, iamsvc, rdssvc, logger)
 
 	sqlProvider := sqlengine.NewProviderService(logger)
 
-	internalDB, err := internaldb.DBInit(&envConfig.InternalDBConfig, logger)
+	internalDB, err := internaldb.DBInit(envConfig.InternalDBConfig, logger)
 	if err != nil {
 		logger.Fatal("connectdb", err)
 	}
 
-	serviceBroker := rdsbroker.New(config.RDSConfig, dbInstance, dbCluster, sqlProvider, logger, internalDB, envConfig.EncryptionKey)
+	sharedPostgres, err := sqlProvider.GetSQLEngine("postgres")
+	if err != nil {
+		logger.Fatal("get-postgres-engine", err)
+	}
+	err = sqlengine.OpenConf(sharedPostgres, envConfig.SharedPostgresDBConfig)
+	if err != nil {
+		logger.Fatal("connect-shared-postgres", err)
+	}
+
+	sharedMysql, err := sqlProvider.GetSQLEngine("mysql")
+	if err != nil {
+		logger.Fatal("get-mysql-engine", err)
+	}
+	err = sqlengine.OpenConf(sharedMysql, envConfig.SharedMysqlDBConfig)
+	if err != nil {
+		logger.Fatal("connect-shared-mysql", err)
+	}
+
+	serviceBroker := rdsbroker.New(configYml.RDSConfig, dbInstance, dbCluster, sqlProvider, logger, internalDB, sharedPostgres, sharedMysql, envConfig.EncryptionKey)
 
 	credentials := brokerapi.BrokerCredentials{
-		Username: config.Username,
-		Password: config.Password,
+		Username: configYml.Username,
+		Password: configYml.Password,
 	}
 
 	brokerAPI := brokerapi.New(serviceBroker, logger, credentials)

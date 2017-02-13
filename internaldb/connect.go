@@ -8,26 +8,13 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"code.cloudfoundry.org/lager"
+	"github.com/AusDTO/pe-rds-broker/config"
 )
-
-//   Valid SSL modes:
-//    * disable - No SSL
-//    * require - Always SSL (skip verification)
-//    * verify-full - Always SSL (require verification)
-type DBConfig struct {
-	DBType   string
-	Url      string
-	Username string
-	Password string
-	DBName   string
-	Sslmode  string
-	Port     int
-}
 
 // Supported DB types:
 // * postgres
 // * sqlite3
-func DBInit(dbConfig *DBConfig, logger lager.Logger) (*gorm.DB, error) {
+func DBInit(dbConfig *config.DBConfig, logger lager.Logger) (*gorm.DB, error) {
 	var DB *gorm.DB
 	var err error
 	switch dbConfig.DBType {
@@ -61,7 +48,7 @@ func DBInit(dbConfig *DBConfig, logger lager.Logger) (*gorm.DB, error) {
 	return DB, nil
 }
 
-func migrate(db *gorm.DB, dbConfig *DBConfig, logger lager.Logger) {
+func migrate(db *gorm.DB, dbConfig *config.DBConfig, logger lager.Logger) {
 	db.AutoMigrate(&DBInstance{}, &DBUser{}, &DBBinding{})
 	// AutoMigrate does not handle FK contraints, nor does sqlite
 	if dbConfig.DBType == "postgres" {

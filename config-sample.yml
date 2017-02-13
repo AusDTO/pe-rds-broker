@@ -11,7 +11,7 @@ rds_config:
   catalog:
     services:
     - id: ce71b484-d542-40f7-9dd4-5526e38c81ba
-      name: rdsmysql
+      name: rds-mysql
       description: RDS MySQL service
       bindable: true
       tags:
@@ -40,6 +40,7 @@ rds_config:
           - 5G storage
         free: false
         rds_properties:
+          shared: false
           db_instance_class: db.t2.micro
           engine: MySQL
           engine_version: 5.6.23
@@ -64,6 +65,7 @@ rds_config:
           - 10G storage
         free: false
         rds_properties:
+          shared: false
           db_instance_class: db.t2.micro
           engine: MySQL
           engine_version: 5.6.23
@@ -74,7 +76,7 @@ rds_config:
           db_security_groups:
           - default
     - id: a2c9adda-6511-462c-9934-b3fd8236e9f0
-      name: rdspostgres
+      name: rds-postgres
       description: RDS PostgreSQL service
       bindable: true
       tags:
@@ -103,6 +105,7 @@ rds_config:
           - 5G storage
         free: false
         rds_properties:
+          shared: false
           db_instance_class: db.t2.micro
           engine: postgres
           engine_version: 9.4.4
@@ -112,3 +115,40 @@ rds_config:
           copy_tags_to_snapshot: true
           db_security_groups:
           - default
+    - id: ea70df89-9ea3-4393-88d9-4e35c4ec43b8
+      name: rds-shared
+      description: RDS Shared Instances
+      bindable: true
+      tags:
+      - relational
+      - shared
+      metadata:
+        displayName: RDS Shared Instances
+        longDescription: RDS services on a shared instance
+        providerDisplayName: Amazon Web Services
+        documentationUrl: https://aws.amazon.com/documentation/rds/
+        supportUrl: https://forums.aws.amazon.com/forum.jspa?forumID=60
+      plan_updateable: false
+      plans:
+      - id: 926ff9c8-6b1d-4648-ad5d-5b82a32811fb
+        name: postgres-shared
+        description: RDS PostgreSQL service on a shared instance
+        metadata:
+          bullets:
+          - Shared PostgreSQL service
+          - AWS RDS
+        free: true
+        rds_properties:
+          shared: true
+          engine: postgres
+      - id: 42d56e29-d980-46bd-8e9d-61d572f5d224
+        name: mysql-shared
+        description: RDS MySQL service on a shared instance
+        metadata:
+          bullets:
+          - Shared MySQL service
+          - AWS RDS
+        free: true
+        rds_properties:
+          shared: true
+          engine: mysql

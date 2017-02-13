@@ -3,7 +3,7 @@ package rdsbroker
 import (
 	"errors"
 	"fmt"
-	"regexp"
+	"github.com/AusDTO/pe-rds-broker/utils"
 )
 
 type Config struct {
@@ -24,7 +24,7 @@ func (c Config) Validate() error {
 		return errors.New("Must provide a non-empty DBPrefix")
 	}
 
-	if !regexp.MustCompile("^[[:alpha:]][[:alnum:]]*$").MatchString(c.DBPrefix) {
+	if !utils.IsSimpleIdentifier(c.DBPrefix) {
 		return errors.New("DBPrefix must begin with a letter and contain only alphanumeric characters")
 	}
 
