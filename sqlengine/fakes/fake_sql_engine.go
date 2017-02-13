@@ -117,10 +117,18 @@ func (f *FakeSQLEngine) RevokePrivileges(dbname string, username string) error {
 	return f.RevokePrivilegesError
 }
 
-func (f *FakeSQLEngine) URI(address string, port int64, dbname string, username string, password string) string {
-	return fmt.Sprintf("fake://%s:%s@%s:%d/%s?reconnect=true", username, password, address, port, dbname)
+func (f *FakeSQLEngine) URI(dbname string, username string, password string) string {
+	return fmt.Sprintf("fake://%s:%s@%s:%d/%s?reconnect=true", username, password, f.OpenAddress, f.OpenPort, dbname)
 }
 
-func (f *FakeSQLEngine) JDBCURI(address string, port int64, dbname string, username string, password string) string {
-	return fmt.Sprintf("jdbc:fake://%s:%d/%s?user=%s&password=%s", address, port, dbname, username, password)
+func (f *FakeSQLEngine) JDBCURI(dbname string, username string, password string) string {
+	return fmt.Sprintf("jdbc:fake://%s:%d/%s?user=%s&password=%s", f.OpenAddress, f.OpenPort, dbname, username, password)
+}
+
+func (d *FakeSQLEngine) Address() string {
+	return d.OpenAddress
+}
+
+func (d *FakeSQLEngine) Port() int64 {
+	return d.OpenPort
 }

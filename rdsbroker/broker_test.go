@@ -1957,14 +1957,12 @@ var _ = Describe("RDS Broker", func() {
 				Identifier:     dbInstanceIdentifier,
 				Address:        "endpoint-address",
 				Port:           3306,
-				DBName:         "test-db",
 			}
 
 			dbCluster.DescribeDBClusterDetails = awsrds.DBClusterDetails{
 				Identifier:     dbClusterIdentifier,
 				Endpoint:       "endpoint-address",
 				Port:           3306,
-				DatabaseName:   "test-db",
 			}
 			instance = MakeInstance()
 		})
@@ -1980,11 +1978,11 @@ var _ = Describe("RDS Broker", func() {
 			Expect(bindingResponse.SyslogDrainURL).To(BeEmpty())
 			Expect(credentials.Host).To(Equal("endpoint-address"))
 			Expect(credentials.Port).To(Equal(int64(3306)))
-			Expect(credentials.Name).To(Equal("test-db"))
+			Expect(credentials.Name).To(Equal(dbName))
 			Expect(credentials.Username).To(Equal(dbUsername))
 			Expect(credentials.Password).ToNot(BeEmpty())
-			Expect(credentials.URI).To(ContainSubstring("@endpoint-address:3306/test-db?reconnect=true"))
-			Expect(credentials.JDBCURI).To(ContainSubstring("jdbc:fake://endpoint-address:3306/test-db?user=" + credentials.Username + "&password="))
+			Expect(credentials.URI).To(ContainSubstring("@endpoint-address:3306/%s?reconnect=true", dbName))
+			Expect(credentials.JDBCURI).To(ContainSubstring("jdbc:fake://endpoint-address:3306/%s?user=%s&password=", dbName, credentials.Username))
 		})
 
 		It("makes the proper calls", func() {
@@ -1999,7 +1997,7 @@ var _ = Describe("RDS Broker", func() {
 			Expect(sqlEngine.OpenCalled).To(BeTrue())
 			Expect(sqlEngine.OpenAddress).To(Equal("endpoint-address"))
 			Expect(sqlEngine.OpenPort).To(Equal(int64(3306)))
-			Expect(sqlEngine.OpenDBName).To(Equal("test-db"))
+			Expect(sqlEngine.OpenDBName).To(Equal(dbName))
 			Expect(sqlEngine.OpenUsername).ToNot(BeEmpty())
 			Expect(sqlEngine.OpenPassword).ToNot(BeEmpty())
 			Expect(sqlEngine.CreateDBCalled).To(BeFalse())
@@ -2007,7 +2005,7 @@ var _ = Describe("RDS Broker", func() {
 			Expect(sqlEngine.CreateUserUsername).To(Equal(credentials.Username))
 			Expect(sqlEngine.CreateUserPassword).To(Equal(credentials.Password))
 			Expect(sqlEngine.GrantPrivilegesCalled).To(BeTrue())
-			Expect(sqlEngine.GrantPrivilegesDBName).To(Equal("test-db"))
+			Expect(sqlEngine.GrantPrivilegesDBName).To(Equal(dbName))
 			Expect(sqlEngine.GrantPrivilegesUsername).To(Equal(credentials.Username))
 			Expect(sqlEngine.CloseCalled).To(BeTrue())
 		})
@@ -2166,6 +2164,90 @@ var _ = Describe("RDS Broker", func() {
 			})
 		})
 
+		Context("when shared instance", func() {
+			BeforeEach(func() {
+				rdsProperties1.Shared = true
+			})
+
+			Context("with postgres", func() {
+				BeforeEach(func() {
+					rdsProperties1.Engine = "postgres"
+					Expect(sharedPostgres.Open("shared-endpoint", 1234, dbName, "master-username", "master-password", config.Verify)).To(Succeed())
+				})
+
+				It("returns the proper response", func() {
+					bindingResponse, err := Bind()
+					Expect(err).ToNot(HaveOccurred())
+					credentials := bindingResponse.Credentials.(*CredentialsHash)
+					Expect(bindingResponse.SyslogDrainURL).To(BeEmpty())
+					Expect(credentials.Host).To(Equal("shared-endpoint"))
+					Expect(credentials.Port).To(Equal(int64(1234)))
+					Expect(credentials.Name).To(Equal(dbName))
+					Expect(credentials.Username).To(Equal(dbUsername))
+					Expect(credentials.Password).ToNot(BeEmpty())
+					Expect(credentials.Password).ToNot(Equal("master-password"))
+					Expect(credentials.URI).To(ContainSubstring("@shared-endpoint:1234/%s?reconnect=true", dbName))
+					Expect(credentials.JDBCURI).To(ContainSubstring("jdbc:fake://shared-endpoint:1234/%s?user=%s&password=", dbName, credentials.Username))
+				})
+
+				It("makes the proper calls", func() {
+					bindingResponse, err := Bind()
+					Expect(err).ToNot(HaveOccurred())
+					credentials := bindingResponse.Credentials.(*CredentialsHash)
+					Expect(dbCluster.DescribeCalled).To(BeFalse())
+					Expect(dbInstance.DescribeCalled).To(BeFalse())
+					Expect(sqlProvider.GetSQLEngineCalled).To(BeFalse())
+					Expect(sharedPostgres.CreateDBCalled).To(BeFalse())
+					Expect(sharedPostgres.CreateUserCalled).To(BeTrue())
+					Expect(sharedPostgres.CreateUserUsername).To(Equal(credentials.Username))
+					Expect(sharedPostgres.CreateUserPassword).To(Equal(credentials.Password))
+					Expect(sharedPostgres.GrantPrivilegesCalled).To(BeTrue())
+					Expect(sharedPostgres.GrantPrivilegesDBName).To(Equal(dbName))
+					Expect(sharedPostgres.GrantPrivilegesUsername).To(Equal(credentials.Username))
+					Expect(sharedPostgres.CloseCalled).To(BeFalse())
+				})
+			})
+
+			Context("with mysql", func() {
+				BeforeEach(func() {
+					rdsProperties1.Engine = "mysql"
+					Expect(sharedMysql.Open("shared-endpoint", 1234, dbName, "master-username", "master-password", config.Verify)).To(Succeed())
+				})
+
+				It("returns the proper response", func() {
+					bindingResponse, err := Bind()
+					Expect(err).ToNot(HaveOccurred())
+					credentials := bindingResponse.Credentials.(*CredentialsHash)
+					Expect(bindingResponse.SyslogDrainURL).To(BeEmpty())
+					Expect(credentials.Host).To(Equal("shared-endpoint"))
+					Expect(credentials.Port).To(Equal(int64(1234)))
+					Expect(credentials.Name).To(Equal(dbName))
+					Expect(credentials.Username).To(Equal(dbUsername))
+					Expect(credentials.Password).ToNot(BeEmpty())
+					Expect(credentials.Password).ToNot(Equal("master-password"))
+					Expect(credentials.URI).To(ContainSubstring("@shared-endpoint:1234/%s?reconnect=true", dbName))
+					Expect(credentials.JDBCURI).To(ContainSubstring("jdbc:fake://shared-endpoint:1234/%s?user=%s&password=", dbName, credentials.Username))
+				})
+
+				It("makes the proper calls", func() {
+					bindingResponse, err := Bind()
+					Expect(err).ToNot(HaveOccurred())
+					credentials := bindingResponse.Credentials.(*CredentialsHash)
+					Expect(dbCluster.DescribeCalled).To(BeFalse())
+					Expect(dbInstance.DescribeCalled).To(BeFalse())
+					Expect(sqlProvider.GetSQLEngineCalled).To(BeFalse())
+					Expect(sharedMysql.CreateDBCalled).To(BeFalse())
+					Expect(sharedMysql.CreateUserCalled).To(BeTrue())
+					Expect(sharedMysql.CreateUserUsername).To(Equal(credentials.Username))
+					Expect(sharedMysql.CreateUserPassword).To(Equal(credentials.Password))
+					Expect(sharedMysql.GrantPrivilegesCalled).To(BeTrue())
+					Expect(sharedMysql.GrantPrivilegesDBName).To(Equal(dbName))
+					Expect(sharedMysql.GrantPrivilegesUsername).To(Equal(credentials.Username))
+					Expect(sharedMysql.CloseCalled).To(BeFalse())
+				})
+			})
+		})
+
 		Context("when Engine is aurora", func() {
 			BeforeEach(func() {
 				rdsProperties1.Engine = "aurora"
@@ -2269,14 +2351,12 @@ var _ = Describe("RDS Broker", func() {
 				Identifier:     dbInstanceIdentifier,
 				Address:        "endpoint-address",
 				Port:           3306,
-				DBName:         "test-db",
 			}
 
 			dbCluster.DescribeDBClusterDetails = awsrds.DBClusterDetails{
 				Identifier:     dbClusterIdentifier,
 				Endpoint:       "endpoint-address",
 				Port:           3306,
-				DatabaseName:   "test-db",
 			}
 			instance := MakeInstance()
 			dbUsername = "username"
@@ -2299,12 +2379,12 @@ var _ = Describe("RDS Broker", func() {
 			Expect(sqlEngine.OpenCalled).To(BeTrue())
 			Expect(sqlEngine.OpenAddress).To(Equal("endpoint-address"))
 			Expect(sqlEngine.OpenPort).To(Equal(int64(3306)))
-			Expect(sqlEngine.OpenDBName).To(Equal("test-db"))
+			Expect(sqlEngine.OpenDBName).To(Equal(dbName))
 			Expect(sqlEngine.OpenUsername).ToNot(BeEmpty())
 			Expect(sqlEngine.OpenPassword).ToNot(BeEmpty())
 			Expect(sqlEngine.RevokePrivilegesCalled).To(BeTrue())
 			Expect(sqlEngine.RevokePrivilegesUsername).To(Equal(dbUsername))
-			Expect(sqlEngine.RevokePrivilegesDBName).To(Equal("test-db"))
+			Expect(sqlEngine.RevokePrivilegesDBName).To(Equal(dbName))
 			Expect(sqlEngine.DropDBCalled).To(BeFalse())
 			Expect(sqlEngine.DropUserCalled).To(BeTrue())
 			Expect(sqlEngine.DropUserUsername).To(Equal(dbUsername))
@@ -2358,6 +2438,58 @@ var _ = Describe("RDS Broker", func() {
 					err := Unbind()
 					Expect(err).To(HaveOccurred())
 					Expect(err).To(Equal(brokerapi.ErrInstanceDoesNotExist))
+				})
+			})
+		})
+
+		Context("when shared instance", func() {
+			BeforeEach(func() {
+				BeforeEach(func() {
+					rdsProperties1.Shared = true
+				})
+
+				Context("with postgres", func() {
+					BeforeEach(func() {
+						rdsProperties1.Engine = "postgres"
+					})
+
+					It("makes the proper calls", func() {
+						err := Unbind()
+						Expect(err).ToNot(HaveOccurred())
+						Expect(dbCluster.DescribeCalled).To(BeFalse())
+						Expect(dbInstance.DescribeCalled).To(BeFalse())
+						Expect(sqlProvider.GetSQLEngineCalled).To(BeFalse())
+						Expect(sharedPostgres.OpenCalled).To(BeFalse())
+						Expect(sharedPostgres.RevokePrivilegesCalled).To(BeTrue())
+						Expect(sharedPostgres.RevokePrivilegesUsername).To(Equal(dbUsername))
+						Expect(sharedPostgres.RevokePrivilegesDBName).To(Equal(dbName))
+						Expect(sharedPostgres.DropDBCalled).To(BeFalse())
+						Expect(sharedPostgres.DropUserCalled).To(BeTrue())
+						Expect(sharedPostgres.DropUserUsername).To(Equal(dbUsername))
+						Expect(sharedPostgres.CloseCalled).To(BeFalse())
+					})
+				})
+
+				Context("with mysql", func() {
+					BeforeEach(func() {
+						rdsProperties1.Engine = "mysql"
+					})
+
+					It("makes the proper calls", func() {
+						err := Unbind()
+						Expect(err).ToNot(HaveOccurred())
+						Expect(dbCluster.DescribeCalled).To(BeFalse())
+						Expect(dbInstance.DescribeCalled).To(BeFalse())
+						Expect(sqlProvider.GetSQLEngineCalled).To(BeFalse())
+						Expect(sharedMysql.OpenCalled).To(BeFalse())
+						Expect(sharedMysql.RevokePrivilegesCalled).To(BeTrue())
+						Expect(sharedMysql.RevokePrivilegesUsername).To(Equal(dbUsername))
+						Expect(sharedMysql.RevokePrivilegesDBName).To(Equal(dbName))
+						Expect(sharedMysql.DropDBCalled).To(BeFalse())
+						Expect(sharedMysql.DropUserCalled).To(BeTrue())
+						Expect(sharedMysql.DropUserUsername).To(Equal(dbUsername))
+						Expect(sharedMysql.CloseCalled).To(BeFalse())
+					})
 				})
 			})
 		})

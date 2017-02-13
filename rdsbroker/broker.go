@@ -326,29 +326,17 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 		return binding, errors.New("Unknown instance ID")
 	}
 
-	dbAddress, dbName, dbPort, err := b.dbConnInfo(instance, servicePlan.RDSProperties.Engine)
-	if err != nil {
-		return binding, err
+	var sqlEngine sqlengine.SQLEngine
+	if servicePlan.RDSProperties.Shared {
+		sqlEngine = b.sharedEngines[servicePlan.RDSProperties.Engine]
+	} else {
+		var err error
+		sqlEngine, err = b.dedicatedSqlEngine(instance, servicePlan.RDSProperties.Engine)
+		if err != nil {
+			return binding, err
+		}
+		defer sqlEngine.Close()
 	}
-
-	masterUser := instance.MasterUser()
-	if masterUser == nil {
-		return binding, err
-	}
-	masterPassword, err := masterUser.Password(b.encryptionKey)
-	if err != nil {
-		return binding, err
-	}
-
-	sqlEngine, err := b.sqlProvider.GetSQLEngine(servicePlan.RDSProperties.Engine)
-	if err != nil {
-		return binding, err
-	}
-
-	if err = sqlEngine.Open(dbAddress, dbPort, dbName, masterUser.Username, masterPassword, config.Verify); err != nil {
-		return binding, err
-	}
-	defer sqlEngine.Close()
 
 	user, new, err := instance.Bind(b.internalDB, bindingID, b.dbUsername(bindParameters.Username, details.AppGUID), internaldb.Standard, b.encryptionKey)
 	if err != nil {
@@ -365,19 +353,19 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 			return binding, err
 		}
 
-		if err = sqlEngine.GrantPrivileges(dbName, user.Username); err != nil {
+		if err = sqlEngine.GrantPrivileges(instance.DBName, user.Username); err != nil {
 			return binding, err
 		}
 	}
 
 	binding.Credentials = &CredentialsHash{
-		Host:     dbAddress,
-		Port:     dbPort,
-		Name:     dbName,
+		Host:     sqlEngine.Address(),
+		Port:     sqlEngine.Port(),
+		Name:     instance.DBName,
 		Username: user.Username,
 		Password: userPassword,
-		URI:      sqlEngine.URI(dbAddress, dbPort, dbName, user.Username, userPassword),
-		JDBCURI:  sqlEngine.JDBCURI(dbAddress, dbPort, dbName, user.Username, userPassword),
+		URI:      sqlEngine.URI(instance.DBName, user.Username, userPassword),
+		JDBCURI:  sqlEngine.JDBCURI(instance.DBName, user.Username, userPassword),
 	}
 
 	return binding, nil
@@ -400,37 +388,24 @@ func (b *RDSBroker) Unbind(context context.Context, instanceID, bindingID string
 		return errors.New("Unknown instance ID")
 	}
 
-	dbAddress, dbName, dbPort, err := b.dbConnInfo(instance, servicePlan.RDSProperties.Engine)
-	if err != nil {
-		return err
-	}
-
-	masterUser := instance.MasterUser()
-	if masterUser == nil {
-		return err
-	}
-	masterPassword, err := masterUser.Password(b.encryptionKey)
-	if err != nil {
-		return err
-	}
-
-	sqlEngine, err := b.sqlProvider.GetSQLEngine(servicePlan.RDSProperties.Engine)
-	if err != nil {
-		return err
-	}
-
-	if err = sqlEngine.Open(dbAddress, dbPort, dbName, masterUser.Username, masterPassword, config.Verify); err != nil {
-		return err
-	}
-	defer sqlEngine.Close()
-
 	user, delete, err := instance.Unbind(b.internalDB, bindingID)
 	if err != nil {
 		return err
 	}
 
 	if delete {
-		if err = sqlEngine.RevokePrivileges(dbName, user.Username); err != nil {
+		var sqlEngine sqlengine.SQLEngine
+		if servicePlan.RDSProperties.Shared {
+			sqlEngine = b.sharedEngines[servicePlan.RDSProperties.Engine]
+		} else {
+			sqlEngine, err = b.dedicatedSqlEngine(instance, servicePlan.RDSProperties.Engine)
+			if err != nil {
+				return err
+			}
+			defer sqlEngine.Close()
+		}
+
+		if err = sqlEngine.RevokePrivileges(instance.DBName, user.Username); err != nil {
 			return err
 		}
 
@@ -542,6 +517,34 @@ func (b *RDSBroker) dbConnInfo(instance *internaldb.DBInstance, engine string) (
 		} else {
 			dbName = instance.DBName
 		}
+	}
+	return
+}
+
+func (b *RDSBroker) dedicatedSqlEngine(instance *internaldb.DBInstance, engine string) (sqlEngine sqlengine.SQLEngine, err error) {
+	dbAddress, dbName, dbPort, err := b.dbConnInfo(instance, engine)
+	if err != nil {
+		return
+	}
+
+	masterUser := instance.MasterUser()
+	if masterUser == nil {
+		err = errors.New("Failed to find master user")
+		return
+	}
+	masterPassword, err := masterUser.Password(b.encryptionKey)
+	if err != nil {
+		return
+	}
+
+	sqlEngine, err = b.sqlProvider.GetSQLEngine(engine)
+	if err != nil {
+		return
+	}
+
+	err = sqlEngine.Open(dbAddress, dbPort, dbName, masterUser.Username, masterPassword, config.Verify)
+	if err != nil {
+		return
 	}
 	return
 }

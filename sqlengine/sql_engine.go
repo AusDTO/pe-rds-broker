@@ -12,8 +12,10 @@ type SQLEngine interface {
 	DropUser(username string) error
 	GrantPrivileges(dbname string, username string) error
 	RevokePrivileges(dbname string, username string) error
-	URI(address string, port int64, dbname string, username string, password string) string
-	JDBCURI(address string, port int64, dbname string, username string, password string) string
+	URI(dbname string, username string, password string) string
+	JDBCURI(dbname string, username string, password string) string
+	Address() string
+	Port() int64
 }
 
 func OpenConf(sqlEngine SQLEngine, config *config.DBConfig) error {

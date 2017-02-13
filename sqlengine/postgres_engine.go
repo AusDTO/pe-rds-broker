@@ -11,8 +11,10 @@ import (
 )
 
 type PostgresEngine struct {
-	logger lager.Logger
-	db     *sql.DB
+	logger  lager.Logger
+	db      *sql.DB
+	address string
+	port    int64
 }
 
 func NewPostgresEngine(logger lager.Logger) *PostgresEngine {
@@ -22,7 +24,9 @@ func NewPostgresEngine(logger lager.Logger) *PostgresEngine {
 }
 
 func (d *PostgresEngine) Open(address string, port int64, dbname string, username string, password string, sslmode config.SSLMode) error {
-	connectionString := d.connectionString(address, port, dbname, username, password, sslmode)
+	d.address = address
+	d.port = port
+	connectionString := d.connectionString(dbname, username, password, sslmode)
 	d.logger.Debug("sql-open", lager.Data{"connection-string": connectionString})
 
 	db, err := sql.Open("postgres", connectionString)
@@ -162,12 +166,12 @@ func (d *PostgresEngine) RevokePrivileges(dbname string, username string) error 
 	return nil
 }
 
-func (d *PostgresEngine) URI(address string, port int64, dbname string, username string, password string) string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?reconnect=true", username, password, address, port, dbname)
+func (d *PostgresEngine) URI(dbname string, username string, password string) string {
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?reconnect=true", username, password, d.address, d.port, dbname)
 }
 
-func (d *PostgresEngine) JDBCURI(address string, port int64, dbname string, username string, password string) string {
-	return fmt.Sprintf("jdbc:postgresql://%s:%d/%s?user=%s&password=%s", address, port, dbname, username, password)
+func (d *PostgresEngine) JDBCURI(dbname string, username string, password string) string {
+	return fmt.Sprintf("jdbc:postgresql://%s:%d/%s?user=%s&password=%s", d.address, d.port, dbname, username, password)
 }
 
 func (d *PostgresEngine) dropConnections(dbname string) error {
@@ -182,6 +186,14 @@ func (d *PostgresEngine) dropConnections(dbname string) error {
 	return nil
 }
 
-func (d *PostgresEngine) connectionString(address string, port int64, dbname string, username string, password string, sslmode config.SSLMode) string {
-	return fmt.Sprintf("host=%s port=%d dbname=%s user='%s' password='%s' sslmode='%s'", address, port, dbname, username, password, sslmode)
+func (d *PostgresEngine) connectionString(dbname string, username string, password string, sslmode config.SSLMode) string {
+	return fmt.Sprintf("host=%s port=%d dbname=%s user='%s' password='%s' sslmode='%s'", d.address, d.port, dbname, username, password, sslmode)
+}
+
+func (d *PostgresEngine) Address() string {
+	return d.address
+}
+
+func (d *PostgresEngine) Port() int64 {
+	return d.port
 }
