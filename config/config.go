@@ -58,7 +58,7 @@ func LoadEnvConfig() (*EnvConfig, error) {
 	}
 	config.EncryptionKey, err = hex.DecodeString(os.Getenv("RDSBROKER_ENCRYPTION_KEY"))
 	if err != nil {
-		return &config, fmt.Errorf("Failed to parse RDSBROKER_ENCRYPTION_KEY", err)
+		return &config, fmt.Errorf("Failed to parse RDSBROKER_ENCRYPTION_KEY: %s", err)
 	}
 	if len(config.EncryptionKey) != 32 {
 		return &config, errors.New("RDSBROKER_ENCRYPTION_KEY must be a hex-encoded 256-bit key")
@@ -74,7 +74,7 @@ func loadDBEnvConfig(version string, defaultPort int64) (*DBConfig, error) {
 	dbconfig.Password = os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_PASSWORD", version))
 	dbconfig.Url      = os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_URL", version))
 	dbconfig.Sslmode  = SSLMode(os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_SSLMODE", version)))
-	port_str := os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_PORT"))
+	port_str := os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_PORT", version))
 	if port_str != "" {
 		dbconfig.Port, err = strconv.ParseInt(port_str, 0, 64)
 		if err != nil {
