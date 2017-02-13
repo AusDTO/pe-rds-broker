@@ -66,10 +66,10 @@ type Cost struct {
 }
 
 type RDSProperties struct {
-	DBInstanceClass             string   `json:"db_instance_class" yaml:"db_instance_class"`
+	DBInstanceClass             string   `json:"db_instance_class,omitempty" yaml:"db_instance_class,omitempty"`
 	Engine                      string   `json:"engine" yaml:"engine"`
-	EngineVersion               string   `json:"engine_version" yaml:"engine_version"`
-	AllocatedStorage            int64    `json:"allocated_storage" yaml:"allocated_storage"`
+	EngineVersion               string   `json:"engine_version,omitempty" yaml:"engine_version,omitempty"`
+	AllocatedStorage            int64    `json:"allocated_storage,omitempty" yaml:"allocated_storage,omitempty"`
 	AutoMinorVersionUpgrade     bool     `json:"auto_minor_version_upgrade,omitempty" yaml:"auto_minor_version_upgrade,omitempty"`
 	AvailabilityZone            string   `json:"availability_zone,omitempty" yaml:"availability_zone,omitempty"`
 	BackupRetentionPeriod       int64    `json:"backup_retention_period,omitempty" yaml:"backup_retention_period,omitempty"`
