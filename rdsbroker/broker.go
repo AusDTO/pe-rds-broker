@@ -552,7 +552,7 @@ func (b *RDSBroker) dedicatedSqlEngine(instance *internaldb.DBInstance, engine s
 		return
 	}
 
-	err = sqlEngine.Open(dbAddress, dbPort, dbName, masterUser.Username, masterPassword, config.Verify)
+	err = sqlEngine.Open(dbAddress, dbPort, dbName, masterUser.Username, masterPassword, config.RequireNoVerify)
 	if err != nil {
 		return
 	}
