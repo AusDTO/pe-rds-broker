@@ -4,6 +4,8 @@ gobin/*
 vendor/
 pe-rds-broker
 db.env
+terraform.tfvars
+*.tfstate*
 
 *\.test
 *.coverprofile
