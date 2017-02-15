@@ -12,7 +12,8 @@ import (
 // Must be a multiple of 4
 const PasswordLength = 24
 // Must be a multiple of 4 plus 1
-const UsernameLength = 25
+// Must be <= 16 because mysql
+const UsernameLength = 13
 
 func Encrypt(msg string, key, iv []byte) ([]byte, error) {
 	src := []byte(msg)
