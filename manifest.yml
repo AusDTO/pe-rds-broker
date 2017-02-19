@@ -3,11 +3,6 @@ disk_quota: 256M
 buildpack: https://github.com/cloudfoundry/go-buildpack
 env:
   GOVERSION: go1.7.5
-  RDSBROKER_INTERNAL_DB_PROVIDER: sqlite3
-  RDSBROKER_INTERNAL_DB_NAME: /tmp/broker.sqlite3
-  RDSBROKER_ENCRYPTION_KEY: "0001020304050607080910111213141516171819202122232425262728293031"
-  AWS_ACCESS_KEY_ID: "your-aws-access-key-id"
-  AWS_SECRET_ACCESS_KEY: "your-aws-secret-access-key"
 
 applications:
   - name: rds-broker
