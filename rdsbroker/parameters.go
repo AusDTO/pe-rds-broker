@@ -13,14 +13,14 @@ type ProvisionParameters struct {
 }
 
 type UpdateParameters struct {
-	ApplyImmediately           bool   `mapstructure:"apply_immediately"`
-	BackupRetentionPeriod      int64  `mapstructure:"backup_retention_period"`
-	PreferredBackupWindow      string `mapstructure:"preferred_backup_window"`
-	PreferredMaintenanceWindow string `mapstructure:"preferred_maintenance_window"`
+	ApplyImmediately           bool   `json:"apply_immediately"`
+	BackupRetentionPeriod      int64  `json:"backup_retention_period"`
+	PreferredBackupWindow      string `json:"preferred_backup_window"`
+	PreferredMaintenanceWindow string `json:"preferred_maintenance_window"`
 }
 
 type BindParameters struct {
-	Username string `mapstructure:"username"`
+	Username string `json:"username"`
 }
 
 type CredentialsHash struct {

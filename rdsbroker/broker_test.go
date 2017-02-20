@@ -1025,7 +1025,7 @@ var _ = Describe("RDS Broker", func() {
 			updateDetails = brokerapi.UpdateDetails{
 				ServiceID:  "Service-2",
 				PlanID:     "Plan-2",
-				Parameters: map[string]interface{}{},
+				RawParameters: json.RawMessage(""),
 				PreviousValues: brokerapi.PreviousValues{
 					PlanID:         "Plan-1",
 					ServiceID:      "Service-1",
@@ -1148,7 +1148,7 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("but has BackupRetentionPeriod Parameter", func() {
 				BeforeEach(func() {
-					updateDetails.Parameters = map[string]interface{}{"backup_retention_period": 12}
+					updateDetails.RawParameters = json.RawMessage("{\"backup_retention_period\": 12}")
 				})
 
 				It("makes the proper calls", func() {
@@ -1452,7 +1452,7 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("but has PreferredBackupWindow Parameter", func() {
 				BeforeEach(func() {
-					updateDetails.Parameters = map[string]interface{}{"preferred_backup_window": "test-preferred-backup-window-parameter"}
+					updateDetails.RawParameters = json.RawMessage("{\"preferred_backup_window\": \"test-preferred-backup-window-parameter\"}")
 				})
 
 				It("makes the proper calls", func() {
@@ -1501,7 +1501,7 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("but has PreferredMaintenanceWindow Parameter", func() {
 				BeforeEach(func() {
-					updateDetails.Parameters = map[string]interface{}{"preferred_maintenance_window": "test-preferred-maintenance-window-parameter"}
+					updateDetails.RawParameters = json.RawMessage("{\"preferred_maintenance_window\": \"test-preferred-maintenance-window-parameter\"}")
 				})
 
 				It("makes the proper calls", func() {
@@ -1623,13 +1623,13 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when Parameters are not valid", func() {
 			BeforeEach(func() {
-				updateDetails.Parameters = map[string]interface{}{"backup_retention_period": "invalid"}
+				updateDetails.RawParameters = json.RawMessage("{\"backup_retention_period\": \"invalid\"}")
 			})
 
 			It("returns the proper error", func() {
 				_, err := Update()
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("'backup_retention_period' expected type 'int64', got unconvertible type 'string'"))
+				Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal string into Go value of type int64"))
 			})
 
 			Context("and user update parameters are not allowed", func() {
@@ -1949,7 +1949,7 @@ var _ = Describe("RDS Broker", func() {
 				ServiceID:  "Service-1",
 				PlanID:     "Plan-1",
 				AppGUID:    "Application-1",
-				Parameters: map[string]interface{}{},
+				RawParameters: json.RawMessage(""),
 			}
 			dbUsername = "uApplication_1"
 
@@ -2012,13 +2012,13 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when Parameters are not valid", func() {
 			BeforeEach(func() {
-				bindDetails.Parameters = map[string]interface{}{"username": true}
+				bindDetails.RawParameters = json.RawMessage("{\"username\": true}")
 			})
 
 			It("returns the proper error", func() {
 				_, err := Bind()
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("'username' expected type 'string', got unconvertible type 'bool'"))
+				Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal bool into Go value of type string"))
 			})
 
 			Context("and user bind parameters are not allowed", func() {
@@ -2071,7 +2071,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("When given a custom username", func() {
 			BeforeEach(func() {
-				bindDetails.Parameters = map[string]interface{}{"username": "custom_user"}
+				bindDetails.RawParameters = json.RawMessage("{\"username\": \"custom_user\"}")
 			})
 
 			It("returns the proper response", func() {
@@ -2092,7 +2092,7 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("that's invalid", func() {
 				BeforeEach(func() {
-					bindDetails.Parameters = map[string]interface{}{"username": "****"}
+					bindDetails.RawParameters = json.RawMessage("{\"username\": \"****\"}")
 				})
 
 				It("returns the proper error", func() {

@@ -1,12 +1,12 @@
-hash: 0985fa8bfbf8ee36561e5511ccf5284f6b81e47940823ace022333177eb41943
-updated: 2017-01-30T16:04:24.98385942+11:00
+hash: b65e7ea936baf4f98f0304ae2ac81f1b37a2d22d2b93ecaf8a910dca83698732
+updated: 2017-02-20T13:50:14.038588974+11:00
 imports:
 - name: code.cloudfoundry.org/lager
   version: 62951a8009ab331bb21dc418074fa54e66eb9b6a
   subpackages:
   - lagertest
 - name: github.com/aws/aws-sdk-go
-  version: 3f8f870ec9939e32b3372abf74d24e468bcd285d
+  version: b2852089fcfd0794d25d57f193e15121ab8a6d9e
   subpackages:
   - aws
   - aws/awserr
@@ -58,7 +58,7 @@ imports:
   - hstore
   - oid
 - name: github.com/mattn/go-sqlite3
-  version: ce9149a3c941c30de51a01dbc5bc414ddaa52927
+  version: 2acfafad5870400156f6fceb12852c281cbba4d5
 - name: github.com/mitchellh/mapstructure
   version: 281073eb9eb092240d33ef253c404f1cca550309
 - name: github.com/onsi/ginkgo
@@ -94,11 +94,11 @@ imports:
   - matchers/support/goraph/util
   - types
 - name: github.com/pivotal-cf/brokerapi
-  version: 11f4623ec2604f34502f6af8048b5f0162ca17eb
+  version: 3ece34833940f3e0fc884ed73e35216907499529
   subpackages:
   - auth
 - name: golang.org/x/net
-  version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
+  version: 6b27048ae5e6ad1ef927e72e437531493de612fe
   subpackages:
   - context
 - name: golang.org/x/sys
