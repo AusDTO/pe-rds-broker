@@ -431,7 +431,7 @@ func (b *RDSBroker) LastOperation(context context.Context, instanceID, operation
 
 	instance := internaldb.FindInstance(b.internalDB, instanceID)
 	if instance == nil {
-		return lastOperation, errors.New("Unknown instance ID")
+		return lastOperation, brokerapi.ErrInstanceDoesNotExist
 	}
 
 	servicePlan, found := b.catalog.FindServicePlan(instance.ServiceID, instance.PlanID)
