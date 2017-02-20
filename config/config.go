@@ -31,6 +31,8 @@ type DBConfig struct {
 
 
 type EnvConfig struct {
+	Username string
+	Password string
 	EncryptionKey []byte
 	InternalDBConfig *DBConfig
 	SharedPostgresDBConfig *DBConfig
@@ -40,6 +42,14 @@ type EnvConfig struct {
 func LoadEnvConfig() (*EnvConfig, error) {
 	var config EnvConfig
 	var err error
+	config.Username = os.Getenv("RDSBROKER_USERNAME")
+	if config.Username == "" {
+		return &config, errors.New("Must provide a non-empty username")
+	}
+	config.Password = os.Getenv("RDSBROKER_PASSWORD")
+	if config.Password == "" {
+		return &config, errors.New("Must provide a non-empty password")
+	}
 	config.SharedPostgresDBConfig, err = loadDBEnvConfig("SHARED_POSTGRES", 5432)
 	if err != nil {
 		return &config, err

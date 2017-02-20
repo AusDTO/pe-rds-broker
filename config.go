@@ -13,8 +13,6 @@ import (
 
 type Config struct {
 	LogLevel  string           `yaml:"log_level"`
-	Username  string           `yaml:"username"`
-	Password  string           `yaml:"password"`
 	RDSConfig rdsbroker.Config `yaml:"rds_config"`
 }
 
@@ -48,14 +46,6 @@ func LoadConfig(configFile string) (config *Config, err error) {
 func (c Config) Validate() error {
 	if c.LogLevel == "" {
 		return errors.New("Must provide a non-empty LogLevel")
-	}
-
-	if c.Username == "" {
-		return errors.New("Must provide a non-empty Username")
-	}
-
-	if c.Password == "" {
-		return errors.New("Must provide a non-empty Password")
 	}
 
 	if err := c.RDSConfig.Validate(); err != nil {

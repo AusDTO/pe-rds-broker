@@ -101,8 +101,8 @@ func main() {
 	serviceBroker := rdsbroker.New(configYml.RDSConfig, dbInstance, dbCluster, sqlProvider, logger, internalDB, sharedPostgres, sharedMysql, envConfig.EncryptionKey)
 
 	credentials := brokerapi.BrokerCredentials{
-		Username: configYml.Username,
-		Password: configYml.Password,
+		Username: envConfig.Username,
+		Password: envConfig.Password,
 	}
 
 	brokerAPI := brokerapi.New(serviceBroker, logger, credentials)

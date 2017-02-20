@@ -1,7 +1,5 @@
 ---
 log_level: DEBUG
-username: username
-password: password
 rds_config:
   region: ap-southeast-2
   db_prefix: cf
