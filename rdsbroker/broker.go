@@ -338,7 +338,8 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 		defer sqlEngine.Close()
 	}
 
-	user, new, err := instance.Bind(b.internalDB, bindingID, b.dbUsername(bindParameters.Username, details.AppGUID), internaldb.Standard, b.encryptionKey)
+	username := b.dbUsername(bindParameters.Username, details.AppGUID, servicePlan.RDSProperties)
+	user, new, err := instance.Bind(b.internalDB, bindingID, username, internaldb.Standard, b.encryptionKey)
 	if err != nil {
 		return binding, err
 	}
@@ -481,11 +482,21 @@ func (b *RDSBroker) dbInstanceIdentifier(instance *internaldb.DBInstance) string
 }
 
 // requestedUsername should have already been tested for validity
-func (b *RDSBroker) dbUsername(requestedUsername, appID string) string {
+func (b *RDSBroker) dbUsername(requestedUsername, appID string, rdsProperties RDSProperties) string {
 	if requestedUsername != "" {
 		return requestedUsername
 	} else if appID != "" {
-		return "u" + strings.Replace(appID, "-", "_", -1)
+		username := "u" + strings.Replace(appID, "-", "_", -1)
+		// mysql <  5.7 has a limit of 16 character usernames
+		// mysql >= 5.7 has a limit of 32 character usernames
+		if strings.ToLower(rdsProperties.Engine) == "mysql" {
+			if strings.HasPrefix(rdsProperties.EngineVersion, "5.7") && len(username) > 32 {
+				return username[:32]
+			} else if len(username) > 16 {
+				return username[:16]
+			}
+		}
+		return username
 	} else {
 		username, _ := utils.RandUsername()
 		return username
