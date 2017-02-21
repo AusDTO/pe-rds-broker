@@ -1940,7 +1940,6 @@ var _ = Describe("RDS Broker", func() {
 	var _ = Describe("Bind", func() {
 		var (
 			bindDetails brokerapi.BindDetails
-			dbUsername string
 			instance *internaldb.DBInstance
 		)
 
@@ -1951,7 +1950,7 @@ var _ = Describe("RDS Broker", func() {
 				AppGUID:    "Application-1",
 				RawParameters: json.RawMessage(""),
 			}
-			dbUsername = "uApplication_1"
+			rdsProperties1.Engine = "postgres"
 
 			dbInstance.DescribeDBInstanceDetails = awsrds.DBInstanceDetails{
 				Identifier:     dbInstanceIdentifier,
@@ -1979,7 +1978,7 @@ var _ = Describe("RDS Broker", func() {
 			Expect(credentials.Host).To(Equal("endpoint-address"))
 			Expect(credentials.Port).To(Equal(int64(3306)))
 			Expect(credentials.Name).To(Equal(dbName))
-			Expect(credentials.Username).To(Equal(dbUsername))
+			Expect(credentials.Username).ToNot(BeEmpty())
 			Expect(credentials.Password).ToNot(BeEmpty())
 			Expect(credentials.URI).To(ContainSubstring("@endpoint-address:3306/%s?reconnect=true", dbName))
 			Expect(credentials.JDBCURI).To(ContainSubstring("jdbc:fake://endpoint-address:3306/%s?user=%s&password=", dbName, credentials.Username))
@@ -1993,7 +1992,7 @@ var _ = Describe("RDS Broker", func() {
 			Expect(dbInstance.DescribeCalled).To(BeTrue())
 			Expect(dbInstance.DescribeID).To(Equal(dbInstanceIdentifier))
 			Expect(sqlProvider.GetSQLEngineCalled).To(BeTrue())
-			Expect(sqlProvider.GetSQLEngineEngine).To(Equal("test-engine-1"))
+			Expect(sqlProvider.GetSQLEngineEngine).To(Equal("postgres"))
 			Expect(sqlEngine.OpenCalled).To(BeTrue())
 			Expect(sqlEngine.OpenAddress).To(Equal("endpoint-address"))
 			Expect(sqlEngine.OpenPort).To(Equal(int64(3306)))
@@ -2183,7 +2182,7 @@ var _ = Describe("RDS Broker", func() {
 					Expect(credentials.Host).To(Equal("shared-endpoint"))
 					Expect(credentials.Port).To(Equal(int64(1234)))
 					Expect(credentials.Name).To(Equal(dbName))
-					Expect(credentials.Username).To(Equal(dbUsername))
+					Expect(credentials.Username).To(HaveSuffix("instance_id"))
 					Expect(credentials.Password).ToNot(BeEmpty())
 					Expect(credentials.Password).ToNot(Equal("master-password"))
 					Expect(credentials.URI).To(ContainSubstring("@shared-endpoint:1234/%s?reconnect=true", dbName))
@@ -2222,7 +2221,7 @@ var _ = Describe("RDS Broker", func() {
 					Expect(credentials.Host).To(Equal("shared-endpoint"))
 					Expect(credentials.Port).To(Equal(int64(1234)))
 					Expect(credentials.Name).To(Equal(dbName))
-					Expect(credentials.Username).To(Equal(dbUsername))
+					Expect(credentials.Username).ToNot(BeEmpty())
 					Expect(credentials.Password).ToNot(BeEmpty())
 					Expect(credentials.Password).ToNot(Equal("master-password"))
 					Expect(credentials.URI).To(ContainSubstring("@shared-endpoint:1234/%s?reconnect=true", dbName))

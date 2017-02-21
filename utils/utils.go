@@ -7,6 +7,7 @@ import (
 	"encoding/base64"
 	"strings"
 	"regexp"
+	"fmt"
 )
 
 // Must be a multiple of 4
@@ -75,4 +76,27 @@ func RandUsername() (string, error) {
 
 func IsSimpleIdentifier(arg string) bool {
 	return regexp.MustCompile("^$|^[[:alpha:]][_[:alnum:]]*$").MatchString(arg)
+}
+
+// requestedUsername should have already been tested for validity
+func DBUsername(requestedUsername, instanceID, appID, engine string, shared bool) string {
+	var username string
+	// The custom username is only required to get around postgres permission issues. This is not a problem in mysql,
+	// mariadb or aurora. And because of mysql's username length limits, it's much easier to just always use a random
+	// 16 character password unless we actually need to do otherwise.
+	if strings.ToLower(engine) != "postgres" {
+		username, _ = RandUsername()
+		return username
+	}
+	if requestedUsername != "" {
+		username = requestedUsername
+	} else if appID != "" {
+		username = "u" + strings.Replace(appID, "-", "_", -1)
+	} else {
+		username, _ = RandUsername()
+	}
+	if shared {
+		username = fmt.Sprintf("%s_%s", username, strings.Replace(instanceID, "-", "_", -1))
+	}
+	return username
 }

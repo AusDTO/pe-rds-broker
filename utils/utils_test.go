@@ -8,6 +8,13 @@ import (
 	"strings"
 )
 
+var _ = Describe("UsernameLength", func() {
+	It("is valid", func() {
+		// yay mysql
+		Expect(UsernameLength).To(BeNumerically("<=", 16))
+	})
+})
+
 var _ = Describe("RandIV", func() {
 	It("returns a random result", func() {
 		one, err := RandIV()
@@ -79,5 +86,108 @@ var _ = Describe("IsSimpleIdentifier", func() {
 	It("rejects invalid strings", func() {
 		Expect(IsSimpleIdentifier("*")).To(BeFalse())
 		Expect(IsSimpleIdentifier("123hi")).To(BeFalse())
+	})
+})
+
+var _ = Describe("DBUsername", func() {
+	var (
+		requestedUsername string
+		instanceID string
+		appID string
+		engine string
+		shared bool
+		username string
+	)
+	BeforeEach(func() {
+		requestedUsername = ""
+		instanceID = "instance-id"
+		appID = ""
+		engine = ""
+		shared = false
+	})
+	JustBeforeEach(func() {
+		username = DBUsername(requestedUsername, instanceID, appID, engine, shared)
+	})
+	Context("as postgres", func() {
+		BeforeEach(func() {
+			engine = "postgres"
+		})
+
+		Context("dedicated instance", func() {
+			Context("with requestedUsername", func(){
+				BeforeEach(func() {
+					requestedUsername = "custom"
+				})
+
+				It("gives the right username", func() {
+					Expect(username).To(Equal("custom"))
+				})
+			})
+
+			Context("without requestedUsername but with appID", func(){
+				BeforeEach(func() {
+					appID = "app-id"
+				})
+
+				It("gives the right username", func() {
+					Expect(username).To(Equal("uapp_id"))
+				})
+			})
+
+			Context("without requestedUsername or appID", func() {
+				It("gives a random username", func() {
+					Expect(username).To(HaveLen(UsernameLength))
+				})
+			})
+		})
+
+		Context("shared instance", func() {
+			BeforeEach(func() {
+				shared = true
+			})
+
+			Context("with requestedUsername", func(){
+				BeforeEach(func() {
+					requestedUsername = "custom"
+				})
+
+				It("gives the right username", func() {
+					Expect(username).To(Equal("custom_instance_id"))
+				})
+			})
+
+			Context("without requestedUsername but with appID", func(){
+				BeforeEach(func() {
+					appID = "app-id"
+				})
+
+				It("gives the right username", func() {
+					Expect(username).To(Equal("uapp_id_instance_id"))
+				})
+			})
+
+			Context("without requestedUsername or appID", func() {
+				It("gives a random username with instanceID", func() {
+					Expect(username).To(HaveSuffix("_instance_id"))
+					Expect(username).To(HaveLen(UsernameLength + len("_instance_id")))
+				})
+			})
+		})
+	})
+
+	Context("as mysql", func() {
+		BeforeEach(func() {
+			engine = "mysql"
+		})
+
+		Context("with requestedUsername", func(){
+			BeforeEach(func() {
+				requestedUsername = "custom"
+			})
+
+			It("gives a random username", func() {
+				Expect(username).To(HaveLen(UsernameLength))
+			})
+		})
 	})
 })
