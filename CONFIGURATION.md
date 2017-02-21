@@ -1,14 +1,12 @@
 # Configuration
 
-A sample configuration can be found at [config-sample.json](config-sample.json).
+A sample configuration can be found at [config-sample.yml](config-sample.yml).
 
 ## General Configuration
 
 | Option     | Required | Type   | Description
 |:-----------|:--------:|:------ |:-----------
 | log_level  | Y        | String | Broker Log Level (DEBUG, INFO, ERROR, FATAL)
-| username   | Y        | String | Broker Auth Username
-| password   | Y        | String | Broker Auth Password
 | rds_config | Y        | Hash   | [RDS Broker configuration](CONFIGURATION.md#rds-broker-configuration)
 
 ## RDS Broker Configuration
@@ -95,7 +93,12 @@ Please refer to the [Amazon Relational Database Service Documentation](https://a
 | preferred_backup_window         | N        | String    | The daily time range during which automated backups are created if automated backups are enabled
 | preferred_maintenance_window    | N        | String    | The weekly time range during which system maintenance can occur
 | publicly_accessible             | N        | Boolean   | Specify if DB instances will be publicly accessible
+| shared*                         | N        | Boolean   | Specifies whether the databases should be created on a shared RDS instance*
 | skip_final_snapshot             | N        | Boolean   | Determines whether a final DB snapshot is created before the DB instances are deleted
 | storage_encrypted               | N        | Boolean   | Specifies whether DB instances are encrypted. Not applicable when using `aurora`
 | storage_type                    | N        | String    | The storage type to be associated with DB instances (`standard`, `gp2`, `io1`)
 | vpc_security_group_ids          | N        | []String  | VPC security group(s) IDs that have rules authorizing connections from applications that need to access the data stored in DB instances
+
+\* When `shared` is true, all other options are ignored except for `engine`, the shared instance must be exist and the
+connection details to the database provided in the relevant environment variables. See (the readme)(README.md#databases)
+for more details.
