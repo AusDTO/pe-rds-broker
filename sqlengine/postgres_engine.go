@@ -229,7 +229,7 @@ func (d *PostgresEngine) SetExtensions(extensions []string) error {
 }
 
 func (d *PostgresEngine) URI(dbname string, username string, password string) string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?reconnect=true", username, password, dbname, d.config.Port, d.config.DBName)
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?reconnect=true", username, password, d.config.Url, d.config.Port, dbname)
 }
 
 func (d *PostgresEngine) JDBCURI(dbname string, username string, password string) string {
