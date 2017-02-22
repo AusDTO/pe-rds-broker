@@ -27,8 +27,10 @@ var _ = Describe("RDS Broker", func() {
 	var (
 		rdsProperties1 RDSProperties
 		rdsProperties2 RDSProperties
+		rdsProperties3 RDSProperties
 		plan1          ServicePlan
 		plan2          ServicePlan
+		plan3          ServicePlan
 		service1       Service
 		service2       Service
 		catalog        Catalog
@@ -97,6 +99,14 @@ var _ = Describe("RDS Broker", func() {
 			AllocatedStorage:  200,
 			SkipFinalSnapshot: skipFinalSnapshot,
 		}
+
+		rdsProperties3 = RDSProperties{
+			DBInstanceClass:   "db.m2.test",
+			Engine:            "test-engine-1",
+			EngineVersion:     "1.3.4",
+			AllocatedStorage:  200,
+			SkipFinalSnapshot: skipFinalSnapshot,
+		}
 		// So I tried deleting all entries in an AfterEach block but it takes
 		// the same amount of time as this and you have to manually add each new
 		// model to the list. So rm-ing the database it is.
@@ -120,6 +130,12 @@ var _ = Describe("RDS Broker", func() {
 			Description:   "This is the Plan 2",
 			RDSProperties: rdsProperties2,
 		}
+		plan3 = ServicePlan{
+			ID:            "Plan-3",
+			Name:          "Plan 3",
+			Description:   "This is the Plan 3",
+			RDSProperties: rdsProperties3,
+		}
 
 		service1 = Service{
 			ID:             "Service-1",
@@ -127,7 +143,7 @@ var _ = Describe("RDS Broker", func() {
 			Description:    "This is the Service 1",
 			Bindable:       serviceBindable,
 			PlanUpdateable: planUpdateable,
-			Plans:          []ServicePlan{plan1},
+			Plans:          []ServicePlan{plan1, plan3},
 		}
 		service2 = Service{
 			ID:             "Service-2",
@@ -184,6 +200,11 @@ var _ = Describe("RDS Broker", func() {
 							ID:          "Plan-1",
 							Name:        "Plan 1",
 							Description: "This is the Plan 1",
+						},
+						brokerapi.ServicePlan{
+							ID:          "Plan-3",
+							Name:        "Plan 3",
+							Description: "This is the Plan 3",
 						},
 					},
 				},
@@ -1023,8 +1044,8 @@ var _ = Describe("RDS Broker", func() {
 
 		BeforeEach(func() {
 			updateDetails = brokerapi.UpdateDetails{
-				ServiceID:  "Service-2",
-				PlanID:     "Plan-2",
+				ServiceID:  "Service-1",
+				PlanID:     "Plan-3",
 				RawParameters: json.RawMessage(""),
 				PreviousValues: brokerapi.PreviousValues{
 					PlanID:         "Plan-1",
@@ -1053,17 +1074,17 @@ var _ = Describe("RDS Broker", func() {
 			Expect(dbInstance.ModifyCalled).To(BeTrue())
 			Expect(dbInstance.ModifyID).To(Equal(dbInstanceIdentifier))
 			Expect(dbInstance.ModifyDBInstanceDetails.DBInstanceClass).To(Equal("db.m2.test"))
-			Expect(dbInstance.ModifyDBInstanceDetails.Engine).To(Equal("test-engine-2"))
+			Expect(dbInstance.ModifyDBInstanceDetails.Engine).To(Equal("test-engine-1"))
 			Expect(dbInstance.ModifyDBInstanceDetails.Tags["Owner"]).To(Equal("Cloud Foundry"))
 			Expect(dbInstance.ModifyDBInstanceDetails.Tags["Updated by"]).To(Equal("AWS RDS Service Broker"))
 			Expect(dbInstance.ModifyDBInstanceDetails.Tags).To(HaveKey("Updated at"))
-			Expect(dbInstance.ModifyDBInstanceDetails.Tags["Service ID"]).To(Equal("Service-2"))
-			Expect(dbInstance.ModifyDBInstanceDetails.Tags["Plan ID"]).To(Equal("Plan-2"))
+			Expect(dbInstance.ModifyDBInstanceDetails.Tags["Service ID"]).To(Equal("Service-1"))
+			Expect(dbInstance.ModifyDBInstanceDetails.Tags["Plan ID"]).To(Equal("Plan-3"))
 		})
 
 		Context("when has AllocatedStorage", func() {
 			BeforeEach(func() {
-				rdsProperties2.AllocatedStorage = int64(100)
+				rdsProperties3.AllocatedStorage = int64(100)
 			})
 
 			It("makes the proper calls", func() {
@@ -1074,7 +1095,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1087,7 +1109,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has AutoMinorVersionUpgrade", func() {
 			BeforeEach(func() {
-				rdsProperties2.AutoMinorVersionUpgrade = true
+				rdsProperties3.AutoMinorVersionUpgrade = true
 			})
 
 			It("makes the proper calls", func() {
@@ -1099,7 +1121,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has AvailabilityZone", func() {
 			BeforeEach(func() {
-				rdsProperties2.AvailabilityZone = "test-az"
+				rdsProperties3.AvailabilityZone = "test-az"
 			})
 
 			It("makes the proper calls", func() {
@@ -1110,7 +1132,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1124,7 +1147,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has BackupRetentionPeriod", func() {
 			BeforeEach(func() {
-				rdsProperties2.BackupRetentionPeriod = int64(7)
+				rdsProperties3.BackupRetentionPeriod = int64(7)
 			})
 
 			It("makes the proper calls", func() {
@@ -1135,7 +1158,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1159,7 +1183,8 @@ var _ = Describe("RDS Broker", func() {
 
 				Context("when Engine is Aurora", func() {
 					BeforeEach(func() {
-						rdsProperties2.Engine = "aurora"
+						rdsProperties1.Engine = "aurora"
+						rdsProperties3.Engine = "aurora"
 					})
 
 					It("makes the proper calls", func() {
@@ -1174,7 +1199,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has CharacterSetName", func() {
 			BeforeEach(func() {
-				rdsProperties2.CharacterSetName = "test-characterset-name"
+				rdsProperties3.CharacterSetName = "test-characterset-name"
 			})
 
 			It("makes the proper calls", func() {
@@ -1185,7 +1210,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1198,7 +1224,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has CopyTagsToSnapshot", func() {
 			BeforeEach(func() {
-				rdsProperties2.CopyTagsToSnapshot = true
+				rdsProperties3.CopyTagsToSnapshot = true
 			})
 
 			It("makes the proper calls", func() {
@@ -1210,7 +1236,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has DBParameterGroupName", func() {
 			BeforeEach(func() {
-				rdsProperties2.DBParameterGroupName = "test-db-parameter-group-name"
+				rdsProperties3.DBParameterGroupName = "test-db-parameter-group-name"
 			})
 
 			It("makes the proper calls", func() {
@@ -1222,7 +1248,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has DBSecurityGroups", func() {
 			BeforeEach(func() {
-				rdsProperties2.DBSecurityGroups = []string{"test-db-security-group"}
+				rdsProperties3.DBSecurityGroups = []string{"test-db-security-group"}
 			})
 
 			It("makes the proper calls", func() {
@@ -1233,7 +1259,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1246,7 +1273,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has DBSubnetGroupName", func() {
 			BeforeEach(func() {
-				rdsProperties2.DBSubnetGroupName = "test-db-subnet-group-name"
+				rdsProperties3.DBSubnetGroupName = "test-db-subnet-group-name"
 			})
 
 			It("makes the proper calls", func() {
@@ -1257,7 +1284,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1270,7 +1298,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has EngineVersion", func() {
 			BeforeEach(func() {
-				rdsProperties2.EngineVersion = "1.2.3"
+				rdsProperties3.EngineVersion = "1.2.3"
 			})
 
 			It("makes the proper calls", func() {
@@ -1281,7 +1309,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1295,7 +1324,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has Iops", func() {
 			BeforeEach(func() {
-				rdsProperties2.Iops = int64(1000)
+				rdsProperties3.Iops = int64(1000)
 			})
 
 			It("makes the proper calls", func() {
@@ -1306,7 +1335,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1319,7 +1349,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has KmsKeyID", func() {
 			BeforeEach(func() {
-				rdsProperties2.KmsKeyID = "test-kms-key-id"
+				rdsProperties3.KmsKeyID = "test-kms-key-id"
 			})
 
 			It("makes the proper calls", func() {
@@ -1330,7 +1360,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1343,7 +1374,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has LicenseModel", func() {
 			BeforeEach(func() {
-				rdsProperties2.LicenseModel = "test-license-model"
+				rdsProperties3.LicenseModel = "test-license-model"
 			})
 
 			It("makes the proper calls", func() {
@@ -1354,7 +1385,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1367,7 +1399,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has MultiAZ", func() {
 			BeforeEach(func() {
-				rdsProperties2.MultiAZ = true
+				rdsProperties3.MultiAZ = true
 			})
 
 			It("makes the proper calls", func() {
@@ -1378,7 +1410,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1391,7 +1424,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has OptionGroupName", func() {
 			BeforeEach(func() {
-				rdsProperties2.OptionGroupName = "test-option-group-name"
+				rdsProperties3.OptionGroupName = "test-option-group-name"
 			})
 
 			It("makes the proper calls", func() {
@@ -1403,7 +1436,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has Port", func() {
 			BeforeEach(func() {
-				rdsProperties2.Port = int64(3306)
+				rdsProperties3.Port = int64(3306)
 			})
 
 			It("makes the proper calls", func() {
@@ -1414,7 +1447,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1428,7 +1462,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has PreferredBackupWindow", func() {
 			BeforeEach(func() {
-				rdsProperties2.PreferredBackupWindow = "test-preferred-backup-window"
+				rdsProperties3.PreferredBackupWindow = "test-preferred-backup-window"
 			})
 
 			It("makes the proper calls", func() {
@@ -1439,7 +1473,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1463,7 +1498,8 @@ var _ = Describe("RDS Broker", func() {
 
 				Context("when Engine is Aurora", func() {
 					BeforeEach(func() {
-						rdsProperties2.Engine = "aurora"
+						rdsProperties1.Engine = "aurora"
+						rdsProperties3.Engine = "aurora"
 					})
 
 					It("makes the proper calls", func() {
@@ -1478,7 +1514,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has PreferredMaintenanceWindow", func() {
 			BeforeEach(func() {
-				rdsProperties2.PreferredMaintenanceWindow = "test-preferred-maintenance-window"
+				rdsProperties3.PreferredMaintenanceWindow = "test-preferred-maintenance-window"
 			})
 
 			It("makes the proper calls", func() {
@@ -1489,7 +1525,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1512,7 +1549,8 @@ var _ = Describe("RDS Broker", func() {
 
 				Context("when Engine is Aurora", func() {
 					BeforeEach(func() {
-						rdsProperties2.Engine = "aurora"
+						rdsProperties1.Engine = "aurora"
+						rdsProperties3.Engine = "aurora"
 					})
 
 					It("makes the proper calls", func() {
@@ -1526,7 +1564,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has PubliclyAccessible", func() {
 			BeforeEach(func() {
-				rdsProperties2.PubliclyAccessible = true
+				rdsProperties3.PubliclyAccessible = true
 			})
 
 			It("makes the proper calls", func() {
@@ -1538,7 +1576,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has StorageEncrypted", func() {
 			BeforeEach(func() {
-				rdsProperties2.StorageEncrypted = true
+				rdsProperties3.StorageEncrypted = true
 			})
 
 			It("makes the proper calls", func() {
@@ -1549,7 +1587,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1562,7 +1601,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has StorageType", func() {
 			BeforeEach(func() {
-				rdsProperties2.StorageType = "test-storage-type"
+				rdsProperties3.StorageType = "test-storage-type"
 			})
 
 			It("makes the proper calls", func() {
@@ -1573,7 +1612,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1586,7 +1626,7 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when has VpcSecurityGroupIds", func() {
 			BeforeEach(func() {
-				rdsProperties2.VpcSecurityGroupIds = []string{"test-vpc-security-group-ids"}
+				rdsProperties3.VpcSecurityGroupIds = []string{"test-vpc-security-group-ids"}
 			})
 
 			It("makes the proper calls", func() {
@@ -1597,7 +1637,8 @@ var _ = Describe("RDS Broker", func() {
 
 			Context("when Engine is Aurora", func() {
 				BeforeEach(func() {
-					rdsProperties2.Engine = "aurora"
+					rdsProperties1.Engine = "aurora"
+					rdsProperties3.Engine = "aurora"
 				})
 
 				It("makes the proper calls", func() {
@@ -1641,18 +1682,6 @@ var _ = Describe("RDS Broker", func() {
 					_, err := Update()
 					Expect(err).ToNot(HaveOccurred())
 				})
-			})
-		})
-
-		Context("when Service is not found", func() {
-			BeforeEach(func() {
-				updateDetails.ServiceID = "unknown"
-			})
-
-			It("returns the proper error", func() {
-				_, err := Update()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("Service 'unknown' not found"))
 			})
 		})
 
@@ -1706,7 +1735,8 @@ var _ = Describe("RDS Broker", func() {
 
 		Context("when Engine is Aurora", func() {
 			BeforeEach(func() {
-				rdsProperties2.Engine = "aurora"
+				rdsProperties1.Engine = "aurora"
+				rdsProperties3.Engine = "aurora"
 			})
 
 			It("makes the proper calls", func() {
@@ -1718,13 +1748,13 @@ var _ = Describe("RDS Broker", func() {
 				Expect(dbCluster.ModifyDBClusterDetails.Tags["Owner"]).To(Equal("Cloud Foundry"))
 				Expect(dbCluster.ModifyDBClusterDetails.Tags["Updated by"]).To(Equal("AWS RDS Service Broker"))
 				Expect(dbCluster.ModifyDBClusterDetails.Tags).To(HaveKey("Updated at"))
-				Expect(dbCluster.ModifyDBClusterDetails.Tags["Service ID"]).To(Equal("Service-2"))
-				Expect(dbCluster.ModifyDBClusterDetails.Tags["Plan ID"]).To(Equal("Plan-2"))
+				Expect(dbCluster.ModifyDBClusterDetails.Tags["Service ID"]).To(Equal("Service-1"))
+				Expect(dbCluster.ModifyDBClusterDetails.Tags["Plan ID"]).To(Equal("Plan-3"))
 			})
 
 			Context("when has DBClusterParameterGroupName", func() {
 				BeforeEach(func() {
-					rdsProperties2.DBClusterParameterGroupName = "test-db-cluster-parameter-group-name"
+					rdsProperties3.DBClusterParameterGroupName = "test-db-cluster-parameter-group-name"
 				})
 
 				It("makes the proper calls", func() {
@@ -1798,18 +1828,6 @@ var _ = Describe("RDS Broker", func() {
 				_, err := Deprovision()
 				Expect(err).To(HaveOccurred())
 				Expect(err).To(Equal(brokerapi.ErrAsyncRequired))
-			})
-		})
-
-		Context("when Service Plan is not found", func() {
-			BeforeEach(func() {
-				deprovisionDetails.PlanID = "unknown"
-			})
-
-			It("returns the proper error", func() {
-				_, err := Deprovision()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("Service Plan 'unknown' not found"))
 			})
 		})
 
@@ -2032,18 +2050,6 @@ var _ = Describe("RDS Broker", func() {
 			})
 		})
 
-		Context("when Service is not found", func() {
-			BeforeEach(func() {
-				bindDetails.ServiceID = "unknown"
-			})
-
-			It("returns the proper error", func() {
-				_, err := Bind()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("Service 'unknown' not found"))
-			})
-		})
-
 		Context("when Service is not bindable", func() {
 			BeforeEach(func() {
 				serviceBindable = false
@@ -2053,18 +2059,6 @@ var _ = Describe("RDS Broker", func() {
 				_, err := Bind()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal("Service is not bindable"))
-			})
-		})
-
-		Context("when Service Plan is not found", func() {
-			BeforeEach(func() {
-				bindDetails.PlanID = "unknown"
-			})
-
-			It("returns the proper error", func() {
-				_, err := Bind()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("Service Plan 'unknown' not found"))
 			})
 		})
 
@@ -2402,18 +2396,6 @@ var _ = Describe("RDS Broker", func() {
 				Expect(err).ToNot(HaveOccurred())
 				Expect(sqlEngine.RevokePrivilegesCalled).To(BeFalse())
 				Expect(sqlEngine.DropUserCalled).To(BeFalse())
-			})
-		})
-
-		Context("when Service Plan is not found", func() {
-			BeforeEach(func() {
-				unbindDetails.PlanID = "unknown"
-			})
-
-			It("returns the proper error", func() {
-				err := Unbind()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("Service Plan 'unknown' not found"))
 			})
 		})
 

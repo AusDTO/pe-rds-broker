@@ -191,33 +191,28 @@ func (b *RDSBroker) Update(context context.Context, instanceID string, details b
 		}
 	}
 
-	service, ok := b.catalog.FindService(details.ServiceID)
-	if !ok {
-		return updateSpec, fmt.Errorf("Service '%s' not found", details.ServiceID)
+	instance, service, oldPlan, err := b.findObjects(instanceID)
+	if err != nil {
+		return updateSpec, err
 	}
 
-	if !service.PlanUpdateable {
-		return updateSpec, brokerapi.ErrPlanChangeNotSupported
-	}
-
-	servicePlan, ok := b.catalog.FindServicePlan(details.ServiceID, details.PlanID)
+	newPlan, ok := b.catalog.FindServicePlan(instance.ServiceID, details.PlanID)
 	if !ok {
 		return updateSpec, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
 	}
 
-	instance := internaldb.FindInstance(b.internalDB, instanceID)
-	if instance == nil {
-		return updateSpec, errors.New("Unknown instance ID")
+	if !CanUpdate(oldPlan, newPlan, service, updateParameters) {
+		return updateSpec, brokerapi.ErrPlanChangeNotSupported
 	}
 
-	if strings.ToLower(servicePlan.RDSProperties.Engine) == "aurora" {
-		modifyDBCluster := b.modifyDBCluster(instance, servicePlan, updateParameters, details)
+	if strings.ToLower(newPlan.RDSProperties.Engine) == "aurora" {
+		modifyDBCluster := b.modifyDBCluster(instance, newPlan, updateParameters, details)
 		if err := b.dbCluster.Modify(b.dbClusterIdentifier(instance), *modifyDBCluster, updateParameters.ApplyImmediately); err != nil {
 			return updateSpec, err
 		}
 	}
 
-	modifyDBInstance := b.modifyDBInstance(instance, servicePlan, updateParameters, details)
+	modifyDBInstance := b.modifyDBInstance(instance, newPlan, updateParameters, details)
 	if err := b.dbInstance.Modify(b.dbInstanceIdentifier(instance), *modifyDBInstance, updateParameters.ApplyImmediately); err != nil {
 		if err == awsrds.ErrDBInstanceDoesNotExist {
 			return updateSpec, brokerapi.ErrInstanceDoesNotExist
@@ -241,14 +236,9 @@ func (b *RDSBroker) Deprovision(context context.Context, instanceID string, deta
 		return deprovisionSpec, brokerapi.ErrAsyncRequired
 	}
 
-	servicePlan, ok := b.catalog.FindServicePlan(details.ServiceID, details.PlanID)
-	if !ok {
-		return deprovisionSpec, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
-	}
-
-	instance := internaldb.FindInstance(b.internalDB, instanceID)
-	if instance == nil {
-		return deprovisionSpec, errors.New("Unknown instance ID")
+	instance, _, servicePlan, err := b.findObjects(instanceID)
+	if err != nil {
+		return deprovisionSpec, err
 	}
 
 	skipDBInstanceFinalSnapshot := servicePlan.RDSProperties.SkipFinalSnapshot
@@ -306,23 +296,13 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 		}
 	}
 
-	service, ok := b.catalog.FindService(details.ServiceID)
-	if !ok {
-		return binding, fmt.Errorf("Service '%s' not found", details.ServiceID)
+	instance, service, servicePlan, err := b.findObjects(instanceID)
+	if err != nil {
+		return binding, err
 	}
 
 	if !service.Bindable {
 		return binding, errors.New("Service is not bindable")
-	}
-
-	servicePlan, ok := b.catalog.FindServicePlan(details.ServiceID, details.PlanID)
-	if !ok {
-		return binding, fmt.Errorf("Service Plan '%s' not found", details.PlanID)
-	}
-
-	instance := internaldb.FindInstance(b.internalDB, instanceID)
-	if instance == nil {
-		return binding, errors.New("Unknown instance ID")
 	}
 
 	var sqlEngine sqlengine.SQLEngine
@@ -378,14 +358,9 @@ func (b *RDSBroker) Unbind(context context.Context, instanceID, bindingID string
 		detailsLogKey:    details,
 	})
 
-	servicePlan, ok := b.catalog.FindServicePlan(details.ServiceID, details.PlanID)
-	if !ok {
-		return fmt.Errorf("Service Plan '%s' not found", details.PlanID)
-	}
-
-	instance := internaldb.FindInstance(b.internalDB, instanceID)
-	if instance == nil {
-		return errors.New("Unknown instance ID")
+	instance, _, servicePlan, err := b.findObjects(instanceID)
+	if err != nil {
+		return err
 	}
 
 	user, delete, err := instance.Unbind(b.internalDB, bindingID)
@@ -429,14 +404,9 @@ func (b *RDSBroker) LastOperation(context context.Context, instanceID, operation
 
 	lastOperation := brokerapi.LastOperation{State: brokerapi.Failed}
 
-	instance := internaldb.FindInstance(b.internalDB, instanceID)
-	if instance == nil {
-		return lastOperation, brokerapi.ErrInstanceDoesNotExist
-	}
-
-	servicePlan, found := b.catalog.FindServicePlan(instance.ServiceID, instance.PlanID)
-	if !found {
-		return lastOperation, errors.New("Unknown service plan")
+	instance, _, servicePlan, err := b.findObjects(instanceID)
+	if err != nil {
+		return lastOperation, err
 	}
 
 	if servicePlan.RDSProperties.Shared {
