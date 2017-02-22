@@ -108,27 +108,32 @@ or run the specific `cf` command with `--help`.
 
 If enabled by the deployment configuration, the broker supports the following parameters to the `cf create-service` command.
 
-| Option                       | Type    | Description
-|:-----------------------------|:------- |:-----------
-| backup_retention_period      | integer | The number of days that Amazon RDS should retain automatic backups of the DB instance (between `0` and `35`) (*)
-| character_set_name           | string  | For supported engines, indicates that the DB instance should be associated with the specified CharacterSet (*)
-| preferred_backup_window      | string  | The daily time range during which automated backups are created if automated backups are enabled (*)
-| preferred_maintenance_window | string  | The weekly time range during which system maintenance can occur (*)
+| Option                        | Type    | Description
+|:------------------------------|:------- |:-----------
+| backup_retention_period*      | integer | The number of days that Amazon RDS should retain automatic backups of the DB instance (between `0` and `35`)
+| character_set_name*           | string  | For supported engines, indicates that the DB instance should be associated with the specified CharacterSet
+| preferred_backup_window*      | string  | The daily time range during which automated backups are created if automated backups are enabled
+| preferred_maintenance_window* | string  | The weekly time range during which system maintenance can occur
 
-(*) Refer to the [Amazon Relational Database Service Documentation](https://aws.amazon.com/documentation/rds/) for more details about how to set these properties
+\* These parameters are ignored for shared instances.
+Refer to the [Amazon Relational Database Service Documentation](https://aws.amazon.com/documentation/rds/)
+for more details about how to set these properties.
 
 ### Update parameters
 
 If enabled by the deployment configuration, the broker supports the following parameters to the `cf update-service` command.
 
-| Option                       | Type    | Description
-|:-----------------------------|:------- |:-----------
-| apply_immediately            | boolean | Specifies whether the modifications in this request and any pending modifications are asynchronously applied as soon as possible, regardless of the Preferred Maintenance Window setting for the DB instance (*)
-| backup_retention_period      | integer | The number of days that Amazon RDS should retain automatic backups of the DB instance (between `0` and `35`) (*)
-| preferred_backup_window      | string  | The daily time range during which automated backups are created if automated backups are enabled (*)
-| preferred_maintenance_window | string  | The weekly time range during which system maintenance can occur (*)
+| Option                       | Type      | Description
+|:-----------------------------|:--------- |:-----------
+| apply_immediately*            | boolean  | Specifies whether the modifications in this request and any pending modifications are asynchronously applied as soon as possible, regardless of the Preferred Maintenance Window setting for the DB instance
+| backup_retention_period*      | integer  | The number of days that Amazon RDS should retain automatic backups of the DB instance (between `0` and `35`)
+| preferred_backup_window*      | string   | The daily time range during which automated backups are created if automated backups are enabled
+| preferred_maintenance_window* | string   | The weekly time range during which system maintenance can occur
+| extensions                    | []string | List of enabled database extensions (postgres only)
 
-(*) Refer to the [Amazon Relational Database Service Documentation](https://aws.amazon.com/documentation/rds/) for more details about how to set these properties
+\* These parameters are ignored for shared instances.
+Refer to the [Amazon Relational Database Service Documentation](https://aws.amazon.com/documentation/rds/)
+for more details about how to set these properties.
 
 #### Bind parameters
 
@@ -136,18 +141,18 @@ If enabled by the deployment configuration, the broker supports the following pa
 
 | Option   | Type   | Description
 |:-------- |:------ |:-----------
-| username | string | The username to use when connecting to the database
+| username | string | The username to use when connecting to the database (postgres only)
 
 ******************************************************
 
 ## Managing the broker
 
-This section provides information for cloud foundry operators who wish to use the broker or do development on the 
+This section provides information for cloud foundry operators who wish to use the broker or do development on the
 broker. If you just using the broker to manage your databases, see [managing instances](#managing-instances).
 
 ### Setup
 
-Before running the broker, you will need to create a `config.yml` file, create any internal databases and set up your 
+Before running the broker, you will need to create a `config.yml` file, create any internal databases and set up your
 environment variables.
 
 #### config.yml
