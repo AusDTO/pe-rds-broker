@@ -1682,6 +1682,12 @@ var _ = Describe("RDS Broker", func() {
 				rdsProperties3.Shared = true
 			})
 
+			It("returns the proper response", func() {
+				updateSpec, err := Update()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(updateSpec.IsAsync).To(BeFalse())
+			})
+
 			It("does not modify the dbinstance or cluster", func() {
 				_, err := Update()
 				Expect(err).ToNot(HaveOccurred())

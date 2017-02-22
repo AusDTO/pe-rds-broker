@@ -178,7 +178,7 @@ func (b *RDSBroker) Update(context context.Context, instanceID string, details b
 		asyncAllowedLogKey: asyncAllowed,
 	})
 
-	updateSpec := brokerapi.UpdateServiceSpec{IsAsync: true}
+	updateSpec := brokerapi.UpdateServiceSpec{IsAsync: false}
 
 	if !asyncAllowed {
 		return updateSpec, brokerapi.ErrAsyncRequired
@@ -225,6 +225,7 @@ func (b *RDSBroker) Update(context context.Context, instanceID string, details b
 	}
 
 	if !newPlan.RDSProperties.Shared {
+		updateSpec.IsAsync = true
 		if strings.ToLower(newPlan.RDSProperties.Engine) == "aurora" {
 			modifyDBCluster := b.modifyDBCluster(instance, newPlan, updateParameters, details)
 			if err := b.dbCluster.Modify(b.dbClusterIdentifier(instance), *modifyDBCluster, updateParameters.ApplyImmediately); err != nil {
