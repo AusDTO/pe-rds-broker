@@ -1,12 +1,12 @@
-hash: b65e7ea936baf4f98f0304ae2ac81f1b37a2d22d2b93ecaf8a910dca83698732
-updated: 2017-02-20T13:50:14.038588974+11:00
+hash: b9e2bf5da0fb47e1146f7ce7ec12ee6407bc9e2add26c95ab3eb284d725e9656
+updated: 2017-02-23T10:14:05.535202037+11:00
 imports:
 - name: code.cloudfoundry.org/lager
   version: 62951a8009ab331bb21dc418074fa54e66eb9b6a
   subpackages:
   - lagertest
 - name: github.com/aws/aws-sdk-go
-  version: b2852089fcfd0794d25d57f193e15121ab8a6d9e
+  version: 00fb2125993965df739fa3398b03bef3eb2e198f
   subpackages:
   - aws
   - aws/awserr
@@ -94,7 +94,7 @@ imports:
   - matchers/support/goraph/util
   - types
 - name: github.com/pivotal-cf/brokerapi
-  version: 3ece34833940f3e0fc884ed73e35216907499529
+  version: cf242ed1d0039504f3fa463b3f54d759a995920c
   subpackages:
   - auth
 - name: golang.org/x/net

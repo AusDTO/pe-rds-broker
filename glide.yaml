@@ -14,7 +14,7 @@ import:
   - aws/awserr
   - aws/session
 - package: github.com/pivotal-cf/brokerapi
-  version: 3ece34833940f3e0fc884ed73e35216907499529
+  version: cf242ed1d0039504f3fa463b3f54d759a995920c
 - package: github.com/go-sql-driver/mysql
 - package: github.com/jinzhu/gorm
   # the v1.0 tag is old and buggy so fix at a newer version
