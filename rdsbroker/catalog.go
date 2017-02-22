@@ -146,9 +146,6 @@ func (s Service) Validate() error {
 		if err := servicePlan.Validate(); err != nil {
 			return fmt.Errorf("Validating Plans configuration: %s", err)
 		}
-		if s.PlanUpdateable && servicePlan.RDSProperties.Shared {
-			return fmt.Errorf("Cannot have an updateable service with shared plans (%+v)", s)
-		}
 	}
 
 	return nil

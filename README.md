@@ -70,8 +70,6 @@ _Note: user bind parameters must be enabled in the deployment configuration for 
 
 ### Database extensions
 
-**Warning: This is a plan for how this could work but is not implemented yet**
-
 Many postgres database extensions require superuser access to enable them. The normal bind credentials are for an
 unprivileged user so your applications cannot enable extensions themselves. To enable or disable extensions, run a
 `cf update-service` command with the `extensions` parameter.
@@ -129,11 +127,13 @@ If enabled by the deployment configuration, the broker supports the following pa
 | backup_retention_period*      | integer  | The number of days that Amazon RDS should retain automatic backups of the DB instance (between `0` and `35`)
 | preferred_backup_window*      | string   | The daily time range during which automated backups are created if automated backups are enabled
 | preferred_maintenance_window* | string   | The weekly time range during which system maintenance can occur
-| extensions                    | []string | List of enabled database extensions (postgres only)
+| extensions^                   | []string | List of enabled database extensions
 
 \* These parameters are ignored for shared instances.
 Refer to the [Amazon Relational Database Service Documentation](https://aws.amazon.com/documentation/rds/)
 for more details about how to set these properties.
+
+^ Postgres only. `plpgsql` is always enabled and does not need to be included in this list.
 
 #### Bind parameters
 

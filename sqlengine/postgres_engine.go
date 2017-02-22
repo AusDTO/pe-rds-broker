@@ -8,13 +8,13 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/AusDTO/pe-rds-broker/config"
+	"github.com/AusDTO/pe-rds-broker/utils"
 )
 
 type PostgresEngine struct {
 	logger  lager.Logger
 	db      *sql.DB
-	address string
-	port    int64
+	config  config.DBConfig
 }
 
 func NewPostgresEngine(logger lager.Logger) *PostgresEngine {
@@ -23,10 +23,9 @@ func NewPostgresEngine(logger lager.Logger) *PostgresEngine {
 	}
 }
 
-func (d *PostgresEngine) Open(address string, port int64, dbname string, username string, password string, sslmode config.SSLMode) error {
-	d.address = address
-	d.port = port
-	connectionString := d.connectionString(dbname, username, password, sslmode)
+func (d *PostgresEngine) Open(conf config.DBConfig) error {
+	d.config = conf
+	connectionString := d.connectionString()
 	d.logger.Debug("sql-open", lager.Data{"connection-string": connectionString})
 
 	db, err := sql.Open("postgres", connectionString)
@@ -166,12 +165,75 @@ func (d *PostgresEngine) RevokePrivileges(dbname string, username string) error 
 	return nil
 }
 
+func (d *PostgresEngine) SetExtensions(extensions []string) error {
+	// validate extensions
+	for _, extension := range extensions {
+		if !utils.IsValidExtensionName(extension) {
+			return fmt.Errorf("Invalid extension name '%s'", extension)
+		}
+	}
+
+	// get current extensions
+	rows, err := d.db.Query("SELECT extname FROM pg_extension WHERE extname != 'plpgsql'")
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	var oldExtensions []string
+	for rows.Next() {
+		var name string
+		if err := rows.Scan(&name); err != nil {
+			return err
+		}
+		oldExtensions = append(oldExtensions, name)
+	}
+	// Add and remove extensions as required
+	// Note: There are more efficient ways to do this involving sorting both lists. But I'm assuming that the lists
+	// won't be particularly long in which case this should be fine.
+	var found bool
+	for _, old := range oldExtensions {
+		found = false
+		for _, new := range extensions {
+			if old == new {
+				found = true
+				break
+			}
+		}
+		if !found {
+			d.logger.Debug("drop-extension", lager.Data{"extension": old})
+			if _, err := d.db.Exec(fmt.Sprintf("DROP EXTENSION \"%s\"", old)); err != nil {
+				return err
+			}
+		}
+	}
+	for _, new := range extensions {
+		if new == "plpgsql" {
+			// plpgsql should always be enabled
+			break
+		}
+		found = false
+		for _, old := range oldExtensions {
+			if old == new {
+				found = true
+				break
+			}
+		}
+		if !found {
+			d.logger.Debug("create-extension", lager.Data{"extension": new})
+			if _, err := d.db.Exec(fmt.Sprintf("CREATE EXTENSION \"%s\"", new)); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (d *PostgresEngine) URI(dbname string, username string, password string) string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?reconnect=true", username, password, d.address, d.port, dbname)
+	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?reconnect=true", username, password, dbname, d.config.Port, d.config.DBName)
 }
 
 func (d *PostgresEngine) JDBCURI(dbname string, username string, password string) string {
-	return fmt.Sprintf("jdbc:postgresql://%s:%d/%s?user=%s&password=%s", d.address, d.port, dbname, username, password)
+	return fmt.Sprintf("jdbc:postgresql://%s:%d/%s?user=%s&password=%s", d.config.Url, d.config.Port, dbname, username, password)
 }
 
 func (d *PostgresEngine) dropConnections(dbname string) error {
@@ -186,14 +248,10 @@ func (d *PostgresEngine) dropConnections(dbname string) error {
 	return nil
 }
 
-func (d *PostgresEngine) connectionString(dbname string, username string, password string, sslmode config.SSLMode) string {
-	return fmt.Sprintf("host=%s port=%d dbname=%s user='%s' password='%s' sslmode='%s'", d.address, d.port, dbname, username, password, sslmode)
+func (d *PostgresEngine) connectionString() string {
+	return fmt.Sprintf("host=%s port=%d dbname=%s user='%s' password='%s' sslmode='%s'", d.config.Url, d.config.Port, d.config.DBName, d.config.Username, d.config.Password, d.config.Sslmode)
 }
 
-func (d *PostgresEngine) Address() string {
-	return d.address
-}
-
-func (d *PostgresEngine) Port() int64 {
-	return d.port
+func (d *PostgresEngine) Config() config.DBConfig {
+	return d.config
 }

@@ -89,6 +89,22 @@ var _ = Describe("IsSimpleIdentifier", func() {
 	})
 })
 
+var _ = Describe("IsValidExtensionName", func() {
+	It("allows valid strings", func() {
+		Expect(IsValidExtensionName("hi")).To(BeTrue())
+		Expect(IsValidExtensionName("hi123")).To(BeTrue())
+		Expect(IsValidExtensionName("HI")).To(BeTrue())
+		Expect(IsValidExtensionName("hi_there")).To(BeTrue())
+		Expect(IsValidExtensionName("uuid-ossp")).To(BeTrue())
+	})
+
+	It("rejects invalid strings", func() {
+		Expect(IsValidExtensionName("")).To(BeFalse())
+		Expect(IsValidExtensionName("*")).To(BeFalse())
+		Expect(IsValidExtensionName("123hi")).To(BeFalse())
+	})
+})
+
 var _ = Describe("DBUsername", func() {
 	var (
 		requestedUsername string

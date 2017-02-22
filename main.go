@@ -84,7 +84,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("get-postgres-engine", err)
 	}
-	err = sqlengine.OpenConf(sharedPostgres, envConfig.SharedPostgresDBConfig)
+	err = sharedPostgres.Open(*envConfig.SharedPostgresDBConfig)
 	if err != nil {
 		logger.Fatal("connect-shared-postgres", err)
 	}
@@ -93,7 +93,7 @@ func main() {
 	if err != nil {
 		logger.Fatal("get-mysql-engine", err)
 	}
-	err = sqlengine.OpenConf(sharedMysql, envConfig.SharedMysqlDBConfig)
+	err = sharedMysql.Open(*envConfig.SharedMysqlDBConfig)
 	if err != nil {
 		logger.Fatal("connect-shared-mysql", err)
 	}

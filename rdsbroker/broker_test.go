@@ -1080,6 +1080,7 @@ var _ = Describe("RDS Broker", func() {
 			Expect(dbInstance.ModifyDBInstanceDetails.Tags).To(HaveKey("Updated at"))
 			Expect(dbInstance.ModifyDBInstanceDetails.Tags["Service ID"]).To(Equal("Service-1"))
 			Expect(dbInstance.ModifyDBInstanceDetails.Tags["Plan ID"]).To(Equal("Plan-3"))
+			Expect(sqlEngine.SetExtensionsCalled).To(BeFalse())
 		})
 
 		Context("when has AllocatedStorage", func() {
@@ -1650,6 +1651,60 @@ var _ = Describe("RDS Broker", func() {
 			})
 		})
 
+		Context("when has extensions", func() {
+			BeforeEach(func() {
+				updateDetails.RawParameters = json.RawMessage(`{"extensions": ["one", "two"]}`)
+			})
+
+			It("makes the proper calls", func() {
+				_, err := Update()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(sqlEngine.SetExtensionsCalled).To(BeTrue())
+				Expect(sqlEngine.SetExtensionsExtensions).To(Equal([]string{"one", "two"}))
+			})
+
+			Context("but it fails", func() {
+				BeforeEach(func() {
+					sqlEngine.SetExtensionsError = errors.New("failed to set extensions")
+				})
+
+				It("returns the proper error", func() {
+					_, err := Update()
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(Equal("failed to set extensions"))
+				})
+			})
+		})
+
+		Context("when plan is shared", func() {
+			BeforeEach(func() {
+				rdsProperties1.Shared = true
+				rdsProperties3.Shared = true
+			})
+
+			It("does not modify the dbinstance or cluster", func() {
+				_, err := Update()
+				Expect(err).ToNot(HaveOccurred())
+				Expect(dbInstance.ModifyCalled).To(BeFalse())
+				Expect(dbCluster.ModifyCalled).To(BeFalse())
+			})
+
+			Context("and has extensions", func() {
+				BeforeEach(func() {
+					updateDetails.RawParameters = json.RawMessage(`{"extensions": ["one", "two"]}`)
+					rdsProperties1.Engine = "postgres"
+					rdsProperties3.Engine = "postgres"
+				})
+
+				It("makes the proper calls", func() {
+					_, err := Update()
+					Expect(err).ToNot(HaveOccurred())
+					Expect(sqlEngine.SetExtensionsCalled).To(BeTrue())
+					Expect(sqlEngine.SetExtensionsExtensions).To(Equal([]string{"one", "two"}))
+				})
+			})
+		})
+
 		Context("when request does not accept incomplete", func() {
 			BeforeEach(func() {
 				acceptsIncomplete = false
@@ -2012,11 +2067,11 @@ var _ = Describe("RDS Broker", func() {
 			Expect(sqlProvider.GetSQLEngineCalled).To(BeTrue())
 			Expect(sqlProvider.GetSQLEngineEngine).To(Equal("postgres"))
 			Expect(sqlEngine.OpenCalled).To(BeTrue())
-			Expect(sqlEngine.OpenAddress).To(Equal("endpoint-address"))
-			Expect(sqlEngine.OpenPort).To(Equal(int64(3306)))
-			Expect(sqlEngine.OpenDBName).To(Equal(dbName))
-			Expect(sqlEngine.OpenUsername).ToNot(BeEmpty())
-			Expect(sqlEngine.OpenPassword).ToNot(BeEmpty())
+			Expect(sqlEngine.OpenConfig.Url).To(Equal("endpoint-address"))
+			Expect(sqlEngine.OpenConfig.Port).To(Equal(int64(3306)))
+			Expect(sqlEngine.OpenConfig.DBName).To(Equal(dbName))
+			Expect(sqlEngine.OpenConfig.Username).ToNot(BeEmpty())
+			Expect(sqlEngine.OpenConfig.Password).ToNot(BeEmpty())
 			Expect(sqlEngine.CreateDBCalled).To(BeFalse())
 			Expect(sqlEngine.CreateUserCalled).To(BeTrue())
 			Expect(sqlEngine.CreateUserUsername).To(Equal(credentials.Username))
@@ -2165,7 +2220,9 @@ var _ = Describe("RDS Broker", func() {
 			Context("with postgres", func() {
 				BeforeEach(func() {
 					rdsProperties1.Engine = "postgres"
-					Expect(sharedPostgres.Open("shared-endpoint", 1234, dbName, "master-username", "master-password", config.Verify)).To(Succeed())
+					conf := config.DBConfig{Url: "shared-endpoint", Port: 1234, DBName: dbName,
+						Username: "master-username", Password: "master-password", Sslmode: config.Verify}
+					Expect(sharedPostgres.Open(conf)).To(Succeed())
 				})
 
 				It("returns the proper response", func() {
@@ -2204,7 +2261,9 @@ var _ = Describe("RDS Broker", func() {
 			Context("with mysql", func() {
 				BeforeEach(func() {
 					rdsProperties1.Engine = "mysql"
-					Expect(sharedMysql.Open("shared-endpoint", 1234, dbName, "master-username", "master-password", config.Verify)).To(Succeed())
+					conf := config.DBConfig{Url: "shared-endpoint", Port: 1234, DBName: dbName,
+						Username: "master-username", Password: "master-password", Sslmode: config.Verify}
+					Expect(sharedMysql.Open(conf)).To(Succeed())
 				})
 
 				It("returns the proper response", func() {
@@ -2370,11 +2429,11 @@ var _ = Describe("RDS Broker", func() {
 			Expect(sqlProvider.GetSQLEngineCalled).To(BeTrue())
 			Expect(sqlProvider.GetSQLEngineEngine).To(Equal("test-engine-1"))
 			Expect(sqlEngine.OpenCalled).To(BeTrue())
-			Expect(sqlEngine.OpenAddress).To(Equal("endpoint-address"))
-			Expect(sqlEngine.OpenPort).To(Equal(int64(3306)))
-			Expect(sqlEngine.OpenDBName).To(Equal(dbName))
-			Expect(sqlEngine.OpenUsername).ToNot(BeEmpty())
-			Expect(sqlEngine.OpenPassword).ToNot(BeEmpty())
+			Expect(sqlEngine.OpenConfig.Url).To(Equal("endpoint-address"))
+			Expect(sqlEngine.OpenConfig.Port).To(Equal(int64(3306)))
+			Expect(sqlEngine.OpenConfig.DBName).To(Equal(dbName))
+			Expect(sqlEngine.OpenConfig.Username).ToNot(BeEmpty())
+			Expect(sqlEngine.OpenConfig.Password).ToNot(BeEmpty())
 			Expect(sqlEngine.RevokePrivilegesCalled).To(BeTrue())
 			Expect(sqlEngine.RevokePrivilegesUsername).To(Equal(dbUsername))
 			Expect(sqlEngine.RevokePrivilegesDBName).To(Equal(dbName))

@@ -7,12 +7,7 @@ import (
 
 type FakeSQLEngine struct {
 	OpenCalled   bool
-	OpenAddress  string
-	OpenPort     int64
-	OpenDBName   string
-	OpenUsername string
-	OpenPassword string
-	OpenSSLMode  config.SSLMode
+	OpenConfig   config.DBConfig
 	OpenError    error
 
 	CloseCalled bool
@@ -47,16 +42,15 @@ type FakeSQLEngine struct {
 	RevokePrivilegesDBName   string
 	RevokePrivilegesUsername string
 	RevokePrivilegesError    error
+
+	SetExtensionsCalled     bool
+	SetExtensionsExtensions []string
+	SetExtensionsError      error
 }
 
-func (f *FakeSQLEngine) Open(address string, port int64, dbname string, username string, password string, sslmode config.SSLMode) error {
+func (f *FakeSQLEngine) Open(conf config.DBConfig) error {
 	f.OpenCalled = true
-	f.OpenAddress = address
-	f.OpenPort = port
-	f.OpenDBName = dbname
-	f.OpenUsername = username
-	f.OpenPassword = password
-	f.OpenSSLMode = sslmode
+	f.OpenConfig = conf
 
 	return f.OpenError
 }
@@ -117,18 +111,21 @@ func (f *FakeSQLEngine) RevokePrivileges(dbname string, username string) error {
 	return f.RevokePrivilegesError
 }
 
+func (f *FakeSQLEngine) SetExtensions(extensions []string) error {
+	f.SetExtensionsCalled = true
+	f.SetExtensionsExtensions = extensions
+
+	return f.SetExtensionsError
+}
+
 func (f *FakeSQLEngine) URI(dbname string, username string, password string) string {
-	return fmt.Sprintf("fake://%s:%s@%s:%d/%s?reconnect=true", username, password, f.OpenAddress, f.OpenPort, dbname)
+	return fmt.Sprintf("fake://%s:%s@%s:%d/%s?reconnect=true", username, password, f.OpenConfig.Url, f.OpenConfig.Port, dbname)
 }
 
 func (f *FakeSQLEngine) JDBCURI(dbname string, username string, password string) string {
-	return fmt.Sprintf("jdbc:fake://%s:%d/%s?user=%s&password=%s", f.OpenAddress, f.OpenPort, dbname, username, password)
+	return fmt.Sprintf("jdbc:fake://%s:%d/%s?user=%s&password=%s", f.OpenConfig.Url, f.OpenConfig.Port, dbname, username, password)
 }
 
-func (d *FakeSQLEngine) Address() string {
-	return d.OpenAddress
-}
-
-func (d *FakeSQLEngine) Port() int64 {
-	return d.OpenPort
+func (d *FakeSQLEngine) Config() config.DBConfig {
+	return d.OpenConfig
 }

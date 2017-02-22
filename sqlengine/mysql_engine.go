@@ -13,8 +13,7 @@ import (
 type MySQLEngine struct {
 	logger  lager.Logger
 	db      *sql.DB
-	address string
-	port    int64
+	config  config.DBConfig
 }
 
 func NewMySQLEngine(logger lager.Logger) *MySQLEngine {
@@ -23,10 +22,9 @@ func NewMySQLEngine(logger lager.Logger) *MySQLEngine {
 	}
 }
 
-func (d *MySQLEngine) Open(address string, port int64, dbname string, username string, password string, sslmode config.SSLMode) error {
-	d.address = address
-	d.port = port
-	connectionString := d.connectionString(dbname, username, password, sslmode)
+func (d *MySQLEngine) Open(conf config.DBConfig) error {
+	d.config = conf
+	connectionString := d.connectionString()
 	d.logger.Debug("sql-open", lager.Data{"connection-string": connectionString})
 
 	db, err := sql.Open("mysql", connectionString)
@@ -141,28 +139,29 @@ func (d *MySQLEngine) RevokePrivileges(dbname string, username string) error {
 	return nil
 }
 
+func (d *MySQLEngine) SetExtensions(extensions []string) error {
+	// mysql doesn't have extensions
+	return nil
+}
+
 func (d *MySQLEngine) URI(dbname string, username string, password string) string {
-	return fmt.Sprintf("mysql://%s:%s@%s:%d/%s?reconnect=true", username, password, d.address, d.port, dbname)
+	return fmt.Sprintf("mysql://%s:%s@%s:%d/%s?reconnect=true", username, password, d.config.Url, d.config.Port, dbname)
 }
 
 func (d *MySQLEngine) JDBCURI(dbname string, username string, password string) string {
-	return fmt.Sprintf("jdbc:mysql://%s:%d/%s?user=%s&password=%s", d.address, d.port, dbname, username, password)
+	return fmt.Sprintf("jdbc:mysql://%s:%d/%s?user=%s&password=%s", d.config.Url, d.config.Port, dbname, username, password)
 }
 
-func (d *MySQLEngine) connectionString(dbname string, username string, password string, sslmode config.SSLMode) string {
+func (d *MySQLEngine) connectionString() string {
 	var tls string
-	switch sslmode {
+	switch d.config.Sslmode {
 	case config.Disable: tls = "false"
 	case config.RequireNoVerify: tls = "skip-verify"
 	case config.Verify: tls = "true"
 	}
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?tls=%s", username, password, d.address, d.port, dbname, tls)
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?tls=%s", d.config.Username, d.config.Password, d.config.Url, d.config.Port, d.config.DBName, tls)
 }
 
-func (d *MySQLEngine) Address() string {
-	return d.address
-}
-
-func (d *MySQLEngine) Port() int64 {
-	return d.port
+func (d *MySQLEngine) Config() config.DBConfig {
+	return d.config
 }

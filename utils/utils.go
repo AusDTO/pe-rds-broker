@@ -78,6 +78,10 @@ func IsSimpleIdentifier(arg string) bool {
 	return regexp.MustCompile("^$|^[[:alpha:]][_[:alnum:]]*$").MatchString(arg)
 }
 
+func IsValidExtensionName(arg string) bool {
+	return regexp.MustCompile("^[[:alpha:]][-_[:alnum:]]*$").MatchString(arg)
+}
+
 // requestedUsername should have already been tested for validity
 func DBUsername(requestedUsername, instanceID, appID, engine string, shared bool) string {
 	var username string

@@ -205,19 +205,40 @@ func (b *RDSBroker) Update(context context.Context, instanceID string, details b
 		return updateSpec, brokerapi.ErrPlanChangeNotSupported
 	}
 
-	if strings.ToLower(newPlan.RDSProperties.Engine) == "aurora" {
-		modifyDBCluster := b.modifyDBCluster(instance, newPlan, updateParameters, details)
-		if err := b.dbCluster.Modify(b.dbClusterIdentifier(instance), *modifyDBCluster, updateParameters.ApplyImmediately); err != nil {
+	// Handle extensions before updating the RDS instance in case the update takes the database down
+	if updateParameters.Extensions != nil {
+		var sqlEngine sqlengine.SQLEngine
+		var err error
+		if newPlan.RDSProperties.Shared {
+			sqlEngine, err = b.sharedSqlEngine(instance, newPlan.RDSProperties.Engine)
+		} else {
+			sqlEngine, err = b.dedicatedSqlEngine(instance, newPlan.RDSProperties.Engine)
+		}
+		if err != nil {
+			return updateSpec, err
+		}
+		defer sqlEngine.Close()
+		err = sqlEngine.SetExtensions(*updateParameters.Extensions)
+		if err != nil {
 			return updateSpec, err
 		}
 	}
 
-	modifyDBInstance := b.modifyDBInstance(instance, newPlan, updateParameters, details)
-	if err := b.dbInstance.Modify(b.dbInstanceIdentifier(instance), *modifyDBInstance, updateParameters.ApplyImmediately); err != nil {
-		if err == awsrds.ErrDBInstanceDoesNotExist {
-			return updateSpec, brokerapi.ErrInstanceDoesNotExist
+	if !newPlan.RDSProperties.Shared {
+		if strings.ToLower(newPlan.RDSProperties.Engine) == "aurora" {
+			modifyDBCluster := b.modifyDBCluster(instance, newPlan, updateParameters, details)
+			if err := b.dbCluster.Modify(b.dbClusterIdentifier(instance), *modifyDBCluster, updateParameters.ApplyImmediately); err != nil {
+				return updateSpec, err
+			}
 		}
-		return updateSpec, err
+
+		modifyDBInstance := b.modifyDBInstance(instance, newPlan, updateParameters, details)
+		if err := b.dbInstance.Modify(b.dbInstanceIdentifier(instance), *modifyDBInstance, updateParameters.ApplyImmediately); err != nil {
+			if err == awsrds.ErrDBInstanceDoesNotExist {
+				return updateSpec, brokerapi.ErrInstanceDoesNotExist
+			}
+			return updateSpec, err
+		}
 	}
 
 	return updateSpec, nil
@@ -339,8 +360,8 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 	}
 
 	binding.Credentials = &CredentialsHash{
-		Host:     sqlEngine.Address(),
-		Port:     sqlEngine.Port(),
+		Host:     sqlEngine.Config().Url,
+		Port:     sqlEngine.Config().Port,
 		Name:     instance.DBName,
 		Username: user.Username,
 		Password: userPassword,
@@ -490,7 +511,8 @@ func (b *RDSBroker) dbConnInfo(instance *internaldb.DBInstance, engine string) (
 }
 
 func (b *RDSBroker) dedicatedSqlEngine(instance *internaldb.DBInstance, engine string) (sqlEngine sqlengine.SQLEngine, err error) {
-	dbAddress, dbName, dbPort, err := b.dbConnInfo(instance, engine)
+	conf := config.DBConfig{Sslmode: config.RequireNoVerify}
+	conf.Url, conf.DBName, conf.Port, err = b.dbConnInfo(instance, engine)
 	if err != nil {
 		return
 	}
@@ -500,7 +522,8 @@ func (b *RDSBroker) dedicatedSqlEngine(instance *internaldb.DBInstance, engine s
 		err = errors.New("Failed to find master user")
 		return
 	}
-	masterPassword, err := masterUser.Password(b.encryptionKey)
+	conf.Username = masterUser.Username
+	conf.Password, err = masterUser.Password(b.encryptionKey)
 	if err != nil {
 		return
 	}
@@ -510,7 +533,24 @@ func (b *RDSBroker) dedicatedSqlEngine(instance *internaldb.DBInstance, engine s
 		return
 	}
 
-	err = sqlEngine.Open(dbAddress, dbPort, dbName, masterUser.Username, masterPassword, config.RequireNoVerify)
+	err = sqlEngine.Open(conf)
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (b *RDSBroker) sharedSqlEngine(instance *internaldb.DBInstance, engine string) (sqlEngine sqlengine.SQLEngine, err error) {
+	sharedEngine := b.sharedEngines[engine]
+
+	sqlEngine, err = b.sqlProvider.GetSQLEngine(engine)
+	if err != nil {
+		return
+	}
+
+	conf := sharedEngine.Config()
+	conf.DBName = instance.DBName
+	err = sqlEngine.Open(conf)
 	if err != nil {
 		return
 	}
