@@ -117,7 +117,7 @@ If enabled by the deployment configuration, the broker supports the following pa
 Refer to the [Amazon Relational Database Service Documentation](https://aws.amazon.com/documentation/rds/)
 for more details about how to set these properties.
 
-### Update parameters
+#### Update parameters
 
 If enabled by the deployment configuration, the broker supports the following parameters to the `cf update-service` command.
 
