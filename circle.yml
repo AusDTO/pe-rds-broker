@@ -14,8 +14,11 @@ dependencies:
     - mkdir -p $(dirname $WS)
     - ln -sf `pwd` $WS
     - cd $WS && glide install
-    - cd $WS && go build -v
+    - cd $WS && go build -v -i
 
 test:
   override:
     - cd $WS && ginkgo -r -race
+    # ensure the subsidiary binaries compile
+    - cd $WS/rotate-key && go build -v -i
+    - cd $WS/decrypt-password && go build -v -i

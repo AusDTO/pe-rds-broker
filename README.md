@@ -266,6 +266,31 @@ Once the broker is configured and deployed, you will need to
 [register the broker](https://docs.cloudfoundry.org/services/managing-service-brokers.html#register-broker) and
 [make the services and plans public](https://docs.cloudfoundry.org/services/access-control.html#enable-access).
 
+#### Retrieving passwords
+
+If you need to retrieve the credentials for a particular database, you can do so with the `decrypt-password` utility.
+This utility expects to have all the same environment variables as the main executable. Be aware that `decrypt-password`
+will print the unencrypted passwords to stdout. Be careful they don't end up in logs or other insecure places.
+
+```
+cd decrypt-password
+go build
+./decrypt-password -instance=<instance-id>
+```
+
+#### Rotating the encryption key
+
+If the database encryption key gets leaked, you will need to create a new encryption key and re-encrypt all the
+passwords in the database. The utility `rotate-key` will help with this. It expects the old encryption key in the
+`RDSBROKER_ENCRYPTION_KEY_OLD` environment variable and the new encryption key in `RDSBROKER_ENCRYPTION_KEY`.
+
+```
+cd rotate-key
+go build
+export RDSBROKER_ENCRYPTION_KEY_OLD="$RDSBROKER_ENCRYPTION_KEY"
+export RDSBROKER_ENCRYPTION_KEY=$(openssl rand -hex 32)
+./rotate-key
+```
 
 ## Contributing
 

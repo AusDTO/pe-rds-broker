@@ -4,9 +4,12 @@ gobin/*
 vendor/
 pe-rds-broker
 db.env
+config.yml
 terraform.tfvars
 *.tfstate*
 *.secret
+rotate-key/rotate-key
+decrypt-password/decrypt-password
 
 *\.test
 *.coverprofile
