@@ -4,8 +4,6 @@ import (
 	"flag"
 	"log"
 	"net/http"
-	"os"
-	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
@@ -19,6 +17,7 @@ import (
 	"github.com/AusDTO/pe-rds-broker/internaldb"
 	"github.com/AusDTO/pe-rds-broker/rdsbroker"
 	"github.com/AusDTO/pe-rds-broker/sqlengine"
+	"github.com/AusDTO/pe-rds-broker/utils"
 )
 
 var (
@@ -38,18 +37,6 @@ func init() {
 	flag.StringVar(&port, "port", "3000", "Listen port")
 }
 
-func buildLogger(logLevel string) lager.Logger {
-	laggerLogLevel, ok := logLevels[strings.ToUpper(logLevel)]
-	if !ok {
-		log.Fatal("Invalid log level: ", logLevel)
-	}
-
-	logger := lager.NewLogger("rds-broker")
-	logger.RegisterSink(lager.NewWriterSink(os.Stdout, laggerLogLevel))
-
-	return logger
-}
-
 func main() {
 	flag.Parse()
 
@@ -58,7 +45,7 @@ func main() {
 		log.Fatalf("Error loading config file: %s", err)
 	}
 
-	logger := buildLogger(configYml.LogLevel)
+	logger := utils.BuildLogger(configYml.LogLevel, "rds-broker")
 
 	envConfig, err := config.LoadEnvConfig()
 	if err != nil {

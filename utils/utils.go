@@ -8,6 +8,9 @@ import (
 	"strings"
 	"regexp"
 	"fmt"
+	"code.cloudfoundry.org/lager"
+	"log"
+	"os"
 )
 
 // Must be a multiple of 4
@@ -18,36 +21,38 @@ const UsernameLength = 13
 
 func Encrypt(msg string, key, iv []byte) ([]byte, error) {
 	src := []byte(msg)
-	var dst []byte
 
-	aesBlockEncrypter, err := aes.NewCipher(key)
+	aesBlock, err := aes.NewCipher(key)
 	if err != nil {
-		return dst, err
+		return nil, err
 	}
 
-	dst = make([]byte, len(src))
-	aesEncrypter := cipher.NewCFBEncrypter(aesBlockEncrypter, iv)
-	aesEncrypter.XORKeyStream(dst, src)
-
-	return dst, nil
+	aesgcm, err := cipher.NewGCM(aesBlock)
+	if err != nil {
+		return nil, err
+	}
+	return aesgcm.Seal(nil, iv, src, nil), nil
 }
 
 func Decrypt(src, key, iv []byte) (string, error) {
-	dst := make([]byte, len(src))
-
-	aesBlockDecrypter, err := aes.NewCipher(key)
+	aesBlock, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
 	}
-
-	aesDecrypter := cipher.NewCFBDecrypter(aesBlockDecrypter, iv)
-	aesDecrypter.XORKeyStream(dst, src)
-
+	aesgcm, err := cipher.NewGCM(aesBlock)
+	if err != nil {
+		return "", err
+	}
+	dst, err := aesgcm.Open(nil, iv, src, nil)
+	if err != nil {
+		return "", err
+	}
 	return string(dst), nil
 }
 
 func RandIV() ([]byte, error) {
-	var bytes = make([]byte, aes.BlockSize)
+	// 12 bytes is the standard nonce size for GCM
+	var bytes = make([]byte, 12)
 	_, err := rand.Read(bytes)
 	return bytes, err
 }
@@ -103,4 +108,22 @@ func DBUsername(requestedUsername, instanceID, appID, engine string, shared bool
 		username = fmt.Sprintf("%s_%s", username, strings.Replace(instanceID, "-", "_", -1))
 	}
 	return username
+}
+
+func BuildLogger(logLevel, component string) lager.Logger {
+	logLevels := map[string]lager.LogLevel{
+		"DEBUG": lager.DEBUG,
+		"INFO":  lager.INFO,
+		"ERROR": lager.ERROR,
+		"FATAL": lager.FATAL,
+	}
+	lagerLogLevel, ok := logLevels[strings.ToUpper(logLevel)]
+	if !ok {
+		log.Fatal("Invalid log level: ", logLevel)
+	}
+
+	logger := lager.NewLogger(component)
+	logger.RegisterSink(lager.NewWriterSink(os.Stdout, lagerLogLevel))
+
+	return logger
 }
