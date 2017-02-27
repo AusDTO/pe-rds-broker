@@ -69,21 +69,53 @@ var _ = Describe("Models", func() {
 			Expect(db.Find(&users).Error).NotTo(HaveOccurred())
 			return err
 		}
-
-		It("works in the normal case", func() {
+		ExpectEncryptedOldKey := func() {
 			for _, user := range users {
 				Expect(user.Password(old_key)).To(MatchRegexp("password-\\d-\\d"))
 				password, err := user.Password(new_key)
 				Expect(err).To(MatchError("cipher: message authentication failed"))
 				Expect(password).NotTo(MatchRegexp("password-\\d-\\d"))
 			}
-			Expect(Rotate()).To(Succeed())
+		}
+		ExpectEncryptedNewKey := func() {
 			for _, user := range users {
 				password, err := user.Password(old_key)
 				Expect(err).To(MatchError("cipher: message authentication failed"))
 				Expect(password).NotTo(MatchRegexp("password-\\d-\\d"))
 				Expect(user.Password(new_key)).To(MatchRegexp("password-\\d-\\d"))
 			}
+		}
+
+		It("works in the normal case", func() {
+			ExpectEncryptedOldKey()
+			Expect(Rotate()).To(Succeed())
+			ExpectEncryptedNewKey()
+		})
+
+		Context("if it's run twice", func() {
+			var (
+				err error
+			)
+			JustBeforeEach(func() {
+				Expect(Rotate()).To(Succeed())
+				err = Rotate()
+			})
+			It("gives a helpful error", func() {
+				Expect(err).To(MatchError("cipher: message authentication failed"))
+			})
+			It("data is still valid", func() {
+				ExpectEncryptedNewKey()
+			})
+
+			Context("without failFast", func() {
+				BeforeEach(func() {
+					failFast = false
+				})
+				It("reports the number of errors", func() {
+					Expect(err).To(HaveOccurred())
+					Expect(err.Error()).To(ContainSubstring("completed with 4 errors"))
+				})
+			})
 		})
 	})
 })
