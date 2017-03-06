@@ -188,6 +188,16 @@ var _ = Describe("DBUsername", func() {
 					Expect(username).To(HaveLen(UsernameLength + len("_instance_id")))
 				})
 			})
+
+			Context("with a long username", func() {
+				BeforeEach(func() {
+					appID = "00000000-0000-0000-0000-000000000000"
+					instanceID = "00000000-0000-0000-0000-000000000000"
+				})
+				It("truncates", func() {
+					Expect(username).To(HaveLen(63))
+				})
+			})
 		})
 	})
 

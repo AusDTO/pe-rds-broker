@@ -107,6 +107,10 @@ func DBUsername(requestedUsername, instanceID, appID, engine string, shared bool
 	if shared {
 		username = fmt.Sprintf("%s_%s", username, strings.Replace(instanceID, "-", "_", -1))
 	}
+	// truncate to 63 characters
+	if len(username) > 63 {
+		username = username[:63]
+	}
 	return username
 }
 
