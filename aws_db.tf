@@ -1,8 +1,15 @@
 /*
- * Create databases by running `terraform apply`
- * Get a list of database environment variables with `terraform output`
- * Get a list of environment variables that can be exported in a shell with
- *   terraform output | sed 's/ = /=/g; s/^/export /g'
+ * Create databases by running
+ *     terraform apply
+ * With a particular variables and secrets file
+ *     terraform apply -var-file=<file> -state=<file>
+ *
+ * Get a list of database environment variables with
+ *     terraform output
+ * Get environment variables for exporting in a shell
+ *     terraform output | sed 's/ = /=/g; s/^/export /g'
+ * Get environment variables for adding to a cloud foundry manifest file
+ *     terraform output | sed 's/ = /: /g'
  *
  * For ways of specifying the AWS access credentials, see
  * https://www.terraform.io/docs/providers/aws/index.html

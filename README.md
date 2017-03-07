@@ -201,42 +201,49 @@ You can generate a random encryption key with something like `openssl rand -hex 
 
 ### Installation
 
-**WARNING: The installation section is from the original readme before the fork and may be out of date.**
-
 #### Locally
 
 Using the standard `go install` (you must have [Go](https://golang.org/) already installed in your local machine):
 
 ```
 $ go install github.com/AusDTO/pe-rds-broker
-$ pe-rds-broker -port=3000 -config=<path-to-your-config-file>
+$ cd $GOPATH/src/github.com/AusDTO/pe-rds-broker
+```
+
+Follow the [setup instructions](#setup), then
+
+```
+$ go build -v -i
+$ ./pe-rds-broker -port=3000 -config=<config-file>
 ```
 
 To pretty print the logs, pipe the output to [jq](https://stedolan.github.io/jq/). Note that this will remove any lines
 that are not json.
 
 ```
-$ pe-rds-broker -port=3000 -config=<path-to-your-config-file> | jq --unbuffered  -R 'fromjson?'
+$ ./pe-rds-broker -port=3000 -config=<config-file> | jq --unbuffered -R 'fromjson?'
 ```
 
 #### Cloud Foundry
 
-The broker can be deployed to an already existing [Cloud Foundry](https://www.cloudfoundry.org/) installation:
+The broker can be deployed to an already existing [Cloud Foundry](https://www.cloudfoundry.org/) installation.
 
 ```
 $ git clone https://github.com/AusDTO/pe-rds-broker.git
 $ cd pe-rds-broker
 ```
 
-Modify the [included manifest file](manifest.yml) to include your AWS credentials and optionally the [sample configuration file](config-sample.yml). 
-Then you can push the broker to your [Cloud Foundry](https://www.cloudfoundry.org/) environment:
+Follow the [setup instructions](#setup) and modify the [included manifest file](manifest.yml) to add the required
+environment variables. If your config file is not stored at `./config.yml`, update [Procfile](Procfile) with the
+correct config file path. Then you can push the broker to your [Cloud Foundry](https://www.cloudfoundry.org/) environment.
 
 ```
-$ cp config-sample.yml config.yml
-$ cf push rds-broker
+$ cf push
 ```
 
 #### Docker
+
+**WARNING: This section is from the original readme before the fork and may be out of date.**
 
 If you want to run the AWS RDS Service Broker on a Docker container, you can use the [cfplatformeng/rds-broker](https://registry.hub.docker.com/u/cfplatformeng/rds-broker/) Docker image.
 
@@ -258,6 +265,8 @@ $ bin/build-docker-image
 
 #### BOSH
 
+**WARNING: This section is from the original readme before the fork and may be out of date.**
+
 This broker can be deployed using the [AWS Service Broker BOSH Release](https://github.com/cf-platform-eng/aws-broker-boshrelease).
 
 ### Managing the broker
@@ -265,6 +274,11 @@ This broker can be deployed using the [AWS Service Broker BOSH Release](https://
 Once the broker is configured and deployed, you will need to
 [register the broker](https://docs.cloudfoundry.org/services/managing-service-brokers.html#register-broker) and
 [make the services and plans public](https://docs.cloudfoundry.org/services/access-control.html#enable-access).
+
+### Testing
+
+To test apps can bind to the databases as expected, you can use the [db-viewer](https://github.com/AusDTO/db-viewer)
+application. It's a very simple app built purely for this purpose.
 
 #### Retrieving passwords
 
