@@ -1,1 +1,14 @@
-.gitignore
+out
+pkg
+gobin/*
+vendor/
+pe-rds-broker
+db.env
+terraform.tfvars
+*.tfstate*
+*.secret
+rotate-key/rotate-key
+decrypt-password/decrypt-password
+
+*\.test
+*.coverprofile
