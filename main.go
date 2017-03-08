@@ -8,7 +8,6 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/pivotal-cf/brokerapi"
 
@@ -55,10 +54,9 @@ func main() {
 	awsConfig := aws.NewConfig().WithRegion(configYml.RDSConfig.Region)
 	awsSession := session.New(awsConfig)
 
-	iamsvc := iam.New(awsSession)
 	rdssvc := rds.New(awsSession)
-	dbInstance := awsrds.NewRDSDBInstance(configYml.RDSConfig.Region, iamsvc, rdssvc, logger)
-	dbCluster := awsrds.NewRDSDBCluster(configYml.RDSConfig.Region, iamsvc, rdssvc, logger)
+	dbInstance := awsrds.NewRDSDBInstance(configYml.RDSConfig.Region, rdssvc, logger)
+	dbCluster := awsrds.NewRDSDBCluster(configYml.RDSConfig.Region, rdssvc, logger)
 
 	sqlProvider := sqlengine.NewProviderService(logger)
 

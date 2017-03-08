@@ -8,26 +8,22 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 )
 
 type RDSDBCluster struct {
 	region string
-	iamsvc *iam.IAM
 	rdssvc *rds.RDS
 	logger lager.Logger
 }
 
 func NewRDSDBCluster(
 	region string,
-	iamsvc *iam.IAM,
 	rdssvc *rds.RDS,
 	logger lager.Logger,
 ) *RDSDBCluster {
 	return &RDSDBCluster{
 		region: region,
-		iamsvc: iamsvc,
 		rdssvc: rdssvc,
 		logger: logger.Session("db-cluster"),
 	}
@@ -104,13 +100,15 @@ func (r *RDSDBCluster) Modify(ID string, dbClusterDetails DBClusterDetails, appl
 	r.logger.Debug("modify-db-cluster", lager.Data{"output": modifyDBClusterOutput})
 
 	if len(dbClusterDetails.Tags) > 0 {
-		dbClusterARN, err := r.dbClusterARN(ID)
+		oldDBClusterDetails, err := r.Describe(ID)
 		if err != nil {
-			return nil
+			return err
 		}
-
 		tags := BuilRDSTags(dbClusterDetails.Tags)
-		AddTagsToResource(dbClusterARN, tags, r.rdssvc, r.logger)
+		AddTagsToResource(oldDBClusterDetails.DBClusterArn, tags, r.rdssvc, r.logger)
+		if err != nil {
+			r.logger.Error("add-tags-to-resource", err)
+		}
 	}
 
 	return nil
@@ -149,6 +147,7 @@ func (r *RDSDBCluster) buildDBCluster(dbCluster *rds.DBCluster) DBClusterDetails
 		AllocatedStorage: aws.Int64Value(dbCluster.AllocatedStorage),
 		Endpoint:         aws.StringValue(dbCluster.Endpoint),
 		Port:             aws.Int64Value(dbCluster.Port),
+		DBClusterArn:     aws.StringValue(dbCluster.DBClusterArn),
 	}
 
 	return dbClusterDetails
@@ -279,13 +278,4 @@ func (r *RDSDBCluster) buildDeleteDBClusterInput(ID string, skipFinalSnapshot bo
 
 func (r *RDSDBCluster) dbSnapshotName(ID string) string {
 	return fmt.Sprintf("rds-broker-%s-%s", ID, time.Now().Format("2006-01-02-15-04-05"))
-}
-
-func (r *RDSDBCluster) dbClusterARN(ID string) (string, error) {
-	userAccount, err := UserAccount(r.iamsvc)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("arn:aws:rds:%s:%s:db:%s", r.region, userAccount, ID), nil
 }

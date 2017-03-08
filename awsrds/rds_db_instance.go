@@ -9,26 +9,22 @@ import (
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 )
 
 type RDSDBInstance struct {
 	region string
-	iamsvc *iam.IAM
 	rdssvc *rds.RDS
 	logger lager.Logger
 }
 
 func NewRDSDBInstance(
 	region string,
-	iamsvc *iam.IAM,
 	rdssvc *rds.RDS,
 	logger lager.Logger,
 ) *RDSDBInstance {
 	return &RDSDBInstance{
 		region: region,
-		iamsvc: iamsvc,
 		rdssvc: rdssvc,
 		logger: logger.Session("db-instance"),
 	}
@@ -119,13 +115,11 @@ func (r *RDSDBInstance) Modify(ID string, dbInstanceDetails DBInstanceDetails, a
 	r.logger.Debug("modify-db-instance", lager.Data{"output": modifyDBInstanceOutput})
 
 	if len(dbInstanceDetails.Tags) > 0 {
-		dbInstanceARN, err := r.dbInstanceARN(ID)
-		if err != nil {
-			return nil
-		}
-
 		tags := BuilRDSTags(dbInstanceDetails.Tags)
-		AddTagsToResource(dbInstanceARN, tags, r.rdssvc, r.logger)
+		err = AddTagsToResource(oldDBInstanceDetails.DBInstanceArn, tags, r.rdssvc, r.logger)
+		if err != nil {
+			r.logger.Error("add-tags-to-resource", err)
+		}
 	}
 
 	return nil
@@ -163,6 +157,7 @@ func (r *RDSDBInstance) buildDBInstance(dbInstance *rds.DBInstance) DBInstanceDe
 		DBName:           aws.StringValue(dbInstance.DBName),
 		MasterUsername:   aws.StringValue(dbInstance.MasterUsername),
 		AllocatedStorage: aws.Int64Value(dbInstance.AllocatedStorage),
+		DBInstanceArn:    aws.StringValue(dbInstance.DBInstanceArn),
 	}
 
 	if dbInstance.Endpoint != nil {
@@ -378,15 +373,6 @@ func (r *RDSDBInstance) buildDeleteDBInstanceInput(ID string, skipFinalSnapshot 
 
 func (r *RDSDBInstance) dbSnapshotName(ID string) string {
 	return fmt.Sprintf("rds-broker-%s-%s", ID, time.Now().Format("2006-01-02-15-04-05"))
-}
-
-func (r *RDSDBInstance) dbInstanceARN(ID string) (string, error) {
-	userAccount, err := UserAccount(r.iamsvc)
-	if err != nil {
-		return "", err
-	}
-
-	return fmt.Sprintf("arn:aws:rds:%s:%s:db:%s", r.region, userAccount, ID), nil
 }
 
 func (r *RDSDBInstance) allowMajorVersionUpgrade(newEngineVersion, oldEngineVersion string) bool {

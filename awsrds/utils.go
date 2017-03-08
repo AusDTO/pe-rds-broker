@@ -2,26 +2,12 @@ package awsrds
 
 import (
 	"errors"
-	"strings"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/awserr"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 )
-
-func UserAccount(iamsvc *iam.IAM) (string, error) {
-	getUserInput := &iam.GetUserInput{}
-	getUserOutput, err := iamsvc.GetUser(getUserInput)
-	if err != nil {
-		return "", err
-	}
-
-	userAccount := strings.Split(*getUserOutput.User.Arn, ":")
-
-	return userAccount[4], nil
-}
 
 func BuilRDSTags(tags map[string]string) []*rds.Tag {
 	var rdsTags []*rds.Tag

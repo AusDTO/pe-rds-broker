@@ -14,16 +14,12 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 )
 
 var _ = Describe("RDS Utils", func() {
 	var (
 		awsSession *session.Session
-
-		iamsvc  *iam.IAM
-		iamCall func(r *request.Request)
 
 		rdssvc  *rds.RDS
 		rdsCall func(r *request.Request)
@@ -35,58 +31,11 @@ var _ = Describe("RDS Utils", func() {
 	BeforeEach(func() {
 		awsSession = session.New(nil)
 
-		iamsvc = iam.New(awsSession)
 		rdssvc = rds.New(awsSession)
 
 		logger = lager.NewLogger("rdsservice_test")
 		testSink = lagertest.NewTestSink()
 		logger.RegisterSink(testSink)
-	})
-
-	var _ = Describe("UserAccount", func() {
-		var (
-			user         *iam.User
-			getUserInput *iam.GetUserInput
-			getUserError error
-		)
-
-		BeforeEach(func() {
-			user = &iam.User{
-				Arn: aws.String("arn:aws:service:region:account:resource"),
-			}
-			getUserInput = &iam.GetUserInput{}
-			getUserError = nil
-		})
-
-		JustBeforeEach(func() {
-			iamsvc.Handlers.Clear()
-			iamCall = func(r *request.Request) {
-				Expect(r.Operation.Name).To(Equal("GetUser"))
-				Expect(r.Params).To(Equal(getUserInput))
-				data := r.Data.(*iam.GetUserOutput)
-				data.User = user
-				r.Error = getUserError
-			}
-			iamsvc.Handlers.Send.PushBack(iamCall)
-		})
-
-		It("returns the User Account", func() {
-			userAccount, err := UserAccount(iamsvc)
-			Expect(err).ToNot(HaveOccurred())
-			Expect(userAccount).To(Equal("account"))
-		})
-
-		Context("when getting user fails", func() {
-			BeforeEach(func() {
-				getUserError = errors.New("operation failed")
-			})
-
-			It("return error the proper error", func() {
-				_, err := UserAccount(iamsvc)
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(Equal("operation failed"))
-			})
-		})
 	})
 
 	var _ = Describe("BuilRDSTags", func() {

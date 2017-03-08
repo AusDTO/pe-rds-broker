@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 )
 
@@ -22,11 +21,9 @@ var _ = Describe("RDS DB Instance", func() {
 	var (
 		region               string
 		dbInstanceIdentifier string
+		dbInstanceArn        string
 
 		awsSession *session.Session
-
-		iamsvc  *iam.IAM
-		iamCall func(r *request.Request)
 
 		rdssvc  *rds.RDS
 		rdsCall func(r *request.Request)
@@ -40,19 +37,19 @@ var _ = Describe("RDS DB Instance", func() {
 	BeforeEach(func() {
 		region = "rds-region"
 		dbInstanceIdentifier = "cf-instance-id"
+		dbInstanceArn = "arn:aws:rds:rds-region:account:db:" + dbInstanceIdentifier
 	})
 
 	JustBeforeEach(func() {
 		awsSession = session.New(nil)
 
-		iamsvc = iam.New(awsSession)
 		rdssvc = rds.New(awsSession)
 
 		logger = lager.NewLogger("rdsdbinstance_test")
 		testSink = lagertest.NewTestSink()
 		logger.RegisterSink(testSink)
 
-		rdsDBInstance = NewRDSDBInstance(region, iamsvc, rdssvc, logger)
+		rdsDBInstance = NewRDSDBInstance(region, rdssvc, logger)
 	})
 
 	var _ = Describe("Describe", func() {
@@ -75,6 +72,7 @@ var _ = Describe("RDS DB Instance", func() {
 				DBName:           "test-dbname",
 				MasterUsername:   "test-master-username",
 				AllocatedStorage: int64(100),
+				DBInstanceArn:    dbInstanceArn,
 			}
 
 			describeDBInstance = &rds.DBInstance{
@@ -85,6 +83,7 @@ var _ = Describe("RDS DB Instance", func() {
 				DBName:               aws.String("test-dbname"),
 				MasterUsername:       aws.String("test-master-username"),
 				AllocatedStorage:     aws.Int64(100),
+				DBInstanceArn:        aws.String(dbInstanceArn),
 			}
 			describeDBInstances = []*rds.DBInstance{describeDBInstance}
 
@@ -620,10 +619,6 @@ var _ = Describe("RDS DB Instance", func() {
 
 			addTagsToResourceInput *rds.AddTagsToResourceInput
 			addTagsToResourceError error
-
-			user         *iam.User
-			getUserInput *iam.GetUserInput
-			getUserError error
 		)
 
 		BeforeEach(func() {
@@ -638,6 +633,7 @@ var _ = Describe("RDS DB Instance", func() {
 				DBName:               aws.String("test-dbname"),
 				MasterUsername:       aws.String("test-master-username"),
 				AllocatedStorage:     aws.Int64(100),
+				DBInstanceArn:        aws.String(dbInstanceArn),
 			}
 			describeDBInstances = []*rds.DBInstance{describeDBInstance}
 
@@ -656,7 +652,7 @@ var _ = Describe("RDS DB Instance", func() {
 			modifyDBInstanceError = nil
 
 			addTagsToResourceInput = &rds.AddTagsToResourceInput{
-				ResourceName: aws.String("arn:aws:rds:rds-region:account:db:" + dbInstanceIdentifier),
+				ResourceName: aws.String(dbInstanceArn),
 				Tags: []*rds.Tag{
 					&rds.Tag{
 						Key:   aws.String("Owner"),
@@ -665,12 +661,6 @@ var _ = Describe("RDS DB Instance", func() {
 				},
 			}
 			addTagsToResourceError = nil
-
-			user = &iam.User{
-				Arn: aws.String("arn:aws:service:region:account:resource"),
-			}
-			getUserInput = &iam.GetUserInput{}
-			getUserError = nil
 		})
 
 		JustBeforeEach(func() {
@@ -697,16 +687,6 @@ var _ = Describe("RDS DB Instance", func() {
 				}
 			}
 			rdssvc.Handlers.Send.PushBack(rdsCall)
-
-			iamsvc.Handlers.Clear()
-			iamCall = func(r *request.Request) {
-				Expect(r.Operation.Name).To(Equal("GetUser"))
-				Expect(r.Params).To(Equal(getUserInput))
-				data := r.Data.(*iam.GetUserOutput)
-				data.User = user
-				r.Error = getUserError
-			}
-			iamsvc.Handlers.Send.PushBack(iamCall)
 		})
 
 		It("does not return error", func() {
@@ -957,17 +937,6 @@ var _ = Describe("RDS DB Instance", func() {
 			Context("when adding tags to resource fails", func() {
 				BeforeEach(func() {
 					addTagsToResourceError = errors.New("operation failed")
-				})
-
-				It("does not return error", func() {
-					err := rdsDBInstance.Modify(dbInstanceIdentifier, dbInstanceDetails, applyImmediately)
-					Expect(err).ToNot(HaveOccurred())
-				})
-			})
-
-			Context("when getting user arn fails", func() {
-				BeforeEach(func() {
-					getUserError = errors.New("operation failed")
 				})
 
 				It("does not return error", func() {

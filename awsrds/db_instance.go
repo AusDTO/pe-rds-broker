@@ -26,6 +26,7 @@ type DBInstanceDetails struct {
 	CopyTagsToSnapshot         bool
 	DBName                     string
 	DBClusterIdentifier        string
+	DBInstanceArn              string
 	DBParameterGroupName       string
 	DBSecurityGroups           []string
 	DBSubnetGroupName          string

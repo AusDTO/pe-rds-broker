@@ -14,7 +14,6 @@ import (
 	"github.com/aws/aws-sdk-go/aws/awserr"
 	"github.com/aws/aws-sdk-go/aws/request"
 	"github.com/aws/aws-sdk-go/aws/session"
-	"github.com/aws/aws-sdk-go/service/iam"
 	"github.com/aws/aws-sdk-go/service/rds"
 )
 
@@ -22,11 +21,9 @@ var _ = Describe("RDS DB Cluster", func() {
 	var (
 		region              string
 		dbClusterIdentifier string
+		dbClusterArn        string
 
 		awsSession *session.Session
-
-		iamsvc  *iam.IAM
-		iamCall func(r *request.Request)
 
 		rdssvc  *rds.RDS
 		rdsCall func(r *request.Request)
@@ -40,19 +37,19 @@ var _ = Describe("RDS DB Cluster", func() {
 	BeforeEach(func() {
 		region = "rds-region"
 		dbClusterIdentifier = "cf-cluster-id"
+		dbClusterArn = "arn:aws:rds:rds-region:account:db:" + dbClusterIdentifier
 	})
 
 	JustBeforeEach(func() {
 		awsSession = session.New(nil)
 
-		iamsvc = iam.New(awsSession)
 		rdssvc = rds.New(awsSession)
 
 		logger = lager.NewLogger("rdsdbcluster_test")
 		testSink = lagertest.NewTestSink()
 		logger.RegisterSink(testSink)
 
-		rdsDBCluster = NewRDSDBCluster(region, iamsvc, rdssvc, logger)
+		rdsDBCluster = NewRDSDBCluster(region, rdssvc, logger)
 	})
 
 	var _ = Describe("Describe", func() {
@@ -77,6 +74,7 @@ var _ = Describe("RDS DB Cluster", func() {
 				AllocatedStorage: int64(100),
 				Endpoint:         "test-endpoint",
 				Port:             int64(3306),
+				DBClusterArn:     dbClusterArn,
 			}
 
 			describeDBCluster = &rds.DBCluster{
@@ -89,6 +87,7 @@ var _ = Describe("RDS DB Cluster", func() {
 				AllocatedStorage:    aws.Int64(100),
 				Endpoint:            aws.String("test-endpoint"),
 				Port:                aws.Int64(3306),
+				DBClusterArn:        aws.String(dbClusterArn),
 			}
 			describeDBClusters = []*rds.DBCluster{describeDBCluster}
 
@@ -428,9 +427,8 @@ var _ = Describe("RDS DB Cluster", func() {
 			addTagsToResourceInput *rds.AddTagsToResourceInput
 			addTagsToResourceError error
 
-			user         *iam.User
-			getUserInput *iam.GetUserInput
-			getUserError error
+			describeDBClusters []*rds.DBCluster
+			describeDBCluster  *rds.DBCluster
 		)
 
 		BeforeEach(func() {
@@ -459,19 +457,25 @@ var _ = Describe("RDS DB Cluster", func() {
 			}
 			addTagsToResourceError = nil
 
-			user = &iam.User{
-				Arn: aws.String("arn:aws:service:region:account:resource"),
+			describeDBCluster = &rds.DBCluster{
+				DBClusterIdentifier: aws.String(dbClusterIdentifier),
+				DBClusterArn:        aws.String(dbClusterArn),
 			}
-			getUserInput = &iam.GetUserInput{}
-			getUserError = nil
+			describeDBClusters = []*rds.DBCluster{describeDBCluster}
 		})
 
 		JustBeforeEach(func() {
 			rdssvc.Handlers.Clear()
 
 			rdsCall = func(r *request.Request) {
-				Expect(r.Operation.Name).To(MatchRegexp("ModifyDBCluster|AddTagsToResource"))
+				Expect(r.Operation.Name).To(MatchRegexp("DescribeDBClusters|ModifyDBCluster|AddTagsToResource"))
 				switch r.Operation.Name {
+				case "DescribeDBClusters":
+					Expect(r.Params).To(BeAssignableToTypeOf(&rds.DescribeDBClustersInput{}))
+					Expect(r.Params).To(Equal(describeDBClustersInput))
+					data := r.Data.(*rds.DescribeDBClustersOutput)
+					data.DBClusters = describeDBClusters
+					r.Error = describeDBClusterError
 				case "ModifyDBCluster":
 					Expect(r.Params).To(BeAssignableToTypeOf(&rds.ModifyDBClusterInput{}))
 					Expect(r.Params).To(Equal(modifyDBClusterInput))
@@ -483,16 +487,6 @@ var _ = Describe("RDS DB Cluster", func() {
 				}
 			}
 			rdssvc.Handlers.Send.PushBack(rdsCall)
-
-			iamsvc.Handlers.Clear()
-			iamCall = func(r *request.Request) {
-				Expect(r.Operation.Name).To(Equal("GetUser"))
-				Expect(r.Params).To(Equal(getUserInput))
-				data := r.Data.(*iam.GetUserOutput)
-				data.User = user
-				r.Error = getUserError
-			}
-			iamsvc.Handlers.Send.PushBack(iamCall)
 		})
 
 		It("does not return error", func() {
@@ -621,17 +615,6 @@ var _ = Describe("RDS DB Cluster", func() {
 			Context("when adding tags to resource fails", func() {
 				BeforeEach(func() {
 					addTagsToResourceError = errors.New("operation failed")
-				})
-
-				It("does not return error", func() {
-					err := rdsDBCluster.Modify(dbClusterIdentifier, dbClusterDetails, applyImmediately)
-					Expect(err).ToNot(HaveOccurred())
-				})
-			})
-
-			Context("when getting user arn fails", func() {
-				BeforeEach(func() {
-					getUserError = errors.New("operation failed")
 				})
 
 				It("does not return error", func() {

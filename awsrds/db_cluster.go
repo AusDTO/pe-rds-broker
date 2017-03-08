@@ -18,6 +18,7 @@ type DBClusterDetails struct {
 	AvailabilityZones           []string
 	BackupRetentionPeriod       int64
 	CharacterSetName            string
+	DBClusterArn                string
 	DBClusterParameterGroupName string
 	DBSubnetGroupName           string
 	DatabaseName                string

@@ -15,13 +15,6 @@
       ],
       "Effect": "Allow",
       "Resource": "*"
-    },
-    {
-      "Action": [
-        "iam:GetUser"
-      ],
-      "Effect": "Allow",
-      "Resource": "*"
     }
   ]
 }
