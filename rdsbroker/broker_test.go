@@ -274,6 +274,7 @@ var _ = Describe("RDS Broker", func() {
 			Expect(dbInstance.CreateDBInstanceDetails.DBName).To(Equal(dbName))
 			Expect(dbInstance.CreateDBInstanceDetails.MasterUsername).ToNot(BeEmpty())
 			Expect(dbInstance.CreateDBInstanceDetails.MasterUserPassword).ToNot(BeEmpty())
+			Expect(dbInstance.CreateDBInstanceDetails.Tags["Managed by"]).To(Equal("github.com/AusDTO/pe-rds-broker"))
 			Expect(dbInstance.CreateDBInstanceDetails.Tags["Owner"]).To(Equal("Cloud Foundry"))
 			Expect(dbInstance.CreateDBInstanceDetails.Tags["Created by"]).To(Equal("AWS RDS Service Broker"))
 			Expect(dbInstance.CreateDBInstanceDetails.Tags).To(HaveKey("Created at"))

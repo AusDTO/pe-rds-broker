@@ -96,6 +96,13 @@ from your CI pipeline.
 
 _Note: user update parameters must be enabled in the deployment configuration for this to work._
 
+### Changing password
+
+In the rare situation that your database password gets leaked, unbinding your app from the database and then rebinding it
+will create a new password for you. If you have multiple applications bound to to same database as the same user
+(using the `username` bind parameter), unbind all applications with that username and then rebind all of them. You will
+need to `cf restage` you apps for them to pick up the new password.
+
 ### All configuration options
 
 This section details all the custom parameters used by the broker. For more details on specifying parameters, see
@@ -167,6 +174,11 @@ The broker requires AWS credentials to manage RDS instances. [iam_policy.json](i
 in multiple ways, including via the environment variables `AWS_ACCESS_KEY_ID` and `AWS_SECRET_ACCESS_KEY`. For more
 details on specifying the credentials, see the
 [AWS SDK for Go documentation](https://docs.aws.amazon.com/sdk-for-go/v1/developer-guide/configuring-sdk.html#id2).
+
+While [iam_policy.json](iam_policy.json) gives a sensible baseline, there are many ways to
+additionally restrict the AWS permissions granted to the broker. For instance, you can limit creating databases to a
+particular database engine or DB instance class. For more information see the
+[RDS docs on IAM policy conditions](http://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/UsingWithRDS.IAM.Conditions.html).
 
 #### Databases
 

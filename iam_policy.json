@@ -3,18 +3,41 @@
   "Statement": [
     {
       "Action": [
-        "rds:DescribeDBInstances",
         "rds:CreateDBInstance",
+        "rds:CreateDBCluster"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    },
+    {
+      "Action": [
+        "rds:DescribeDBInstances",
         "rds:ModifyDBInstance",
         "rds:DeleteDBInstance",
+        "rds:AddTagsToResource"
+      ],
+      "Effect": "Allow",
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "rds:db-tag/Managed by": ["github.com/AusDTO/pe-rds-broker"]
+        }
+      }
+    },
+    {
+      "Action": [
         "rds:DescribeDBClusters",
-        "rds:CreateDBCluster",
         "rds:ModifyDBCluster",
         "rds:DeleteDBCluster",
         "rds:AddTagsToResource"
       ],
       "Effect": "Allow",
-      "Resource": "*"
+      "Resource": "*",
+      "Condition": {
+        "StringEquals": {
+          "rds:cluster-tag/Managed by": ["github.com/AusDTO/pe-rds-broker"]
+        }
+      }
     }
   ]
 }

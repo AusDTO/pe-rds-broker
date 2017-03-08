@@ -801,6 +801,10 @@ func (b *RDSBroker) dbInstanceFromPlan(servicePlan ServicePlan) *awsrds.DBInstan
 func (b *RDSBroker) dbTags(action, serviceID, planID, organizationID, spaceID string) map[string]string {
 	tags := make(map[string]string)
 
+	// This tag is used by the IAM policy to grant access to modify the database
+	// Don't change this tag without also changing iam_policy.json and the IAM policy in your AWS account
+	tags["Managed by"] = "github.com/AusDTO/pe-rds-broker"
+
 	tags["Owner"] = "Cloud Foundry"
 
 	tags[action+" by"] = "AWS RDS Service Broker"
