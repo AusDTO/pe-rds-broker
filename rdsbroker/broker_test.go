@@ -1832,6 +1832,7 @@ var _ = Describe("RDS Broker", func() {
 		var (
 			deprovisionDetails brokerapi.DeprovisionDetails
 			acceptsIncomplete  bool
+			instance           *internaldb.DBInstance
 		)
 
 		BeforeEach(func() {
@@ -1840,7 +1841,7 @@ var _ = Describe("RDS Broker", func() {
 				PlanID:    "Plan-1",
 			}
 			acceptsIncomplete = true
-			MakeInstance()
+			instance = MakeInstance()
 		})
 
 		Deprovision := func() (brokerapi.DeprovisionServiceSpec, error) {
@@ -1939,6 +1940,8 @@ var _ = Describe("RDS Broker", func() {
 					Expect(sharedPostgres.DropDBCalled).To(BeTrue())
 					Expect(sharedPostgres.DropDBDBName).To(Equal(dbName))
 					Expect(sharedMysql.DropDBCalled).To(BeFalse())
+					Expect(sharedPostgres.DropUserCalled).To(BeTrue())
+					Expect(sharedPostgres.DropUserUsername).To(Equal(instance.MasterUser().Username))
 					Expect(err).ToNot(HaveOccurred())
 				})
 

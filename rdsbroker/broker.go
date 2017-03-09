@@ -274,9 +274,16 @@ func (b *RDSBroker) Deprovision(context context.Context, instanceID string, deta
 		if err != nil {
 			return deprovisionSpec, err
 		}
+		for _, user := range instance.Users {
+			err = sqlEngine.DropUser(user.Username)
+			if err != nil {
+				// log and move on because the database is gone
+				b.logger.Error("drop-user", err, lager.Data{"username": user.Username})
+			}
+		}
 		err = instance.Delete(b.internalDB)
 		if err != nil {
-			// log an move on because the real database is gone
+			// log and move on because the real database is gone
 			b.logger.Error("delete-instance", err)
 		}
 		deprovisionSpec.IsAsync = false
