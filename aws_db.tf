@@ -71,6 +71,9 @@ resource "aws_db_instance" "rds_broker_internaldb" {
   vpc_security_group_ids = "${var.vpc_security_group_ids}"
   db_subnet_group_name = "${var.db_subnet_group_name}"
   backup_retention_period = "${var.backup_retention_period}"
+  tags = {
+    "Managed by" = "github.com/AusDTO/pe-rds-broker"
+  }
 }
 
 resource "aws_db_instance" "rds_broker_shared_postgres" {
@@ -86,6 +89,9 @@ resource "aws_db_instance" "rds_broker_shared_postgres" {
   vpc_security_group_ids = "${var.vpc_security_group_ids}"
   db_subnet_group_name = "${var.db_subnet_group_name}"
   backup_retention_period = "${var.backup_retention_period}"
+  tags = {
+    "Managed by" = "github.com/AusDTO/pe-rds-broker"
+  }
 }
 
 resource "aws_db_instance" "rds_broker_shared_mysql" {
@@ -101,6 +107,9 @@ resource "aws_db_instance" "rds_broker_shared_mysql" {
   vpc_security_group_ids = "${var.vpc_security_group_ids}"
   db_subnet_group_name = "${var.db_subnet_group_name}"
   backup_retention_period = "${var.backup_retention_period}"
+  tags = {
+    "Managed by" = "github.com/AusDTO/pe-rds-broker"
+  }
 }
 
 output RDSBROKER_INTERNAL_DB_PROVIDER {
