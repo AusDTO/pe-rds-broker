@@ -4,14 +4,15 @@
     {
       "Action": [
         "rds:CreateDBInstance",
-        "rds:CreateDBCluster"
+        "rds:CreateDBCluster",
+        "rds:DescribeDBInstances",
+        "rds:DescribeDBClusters"
       ],
       "Effect": "Allow",
       "Resource": "*"
     },
     {
       "Action": [
-        "rds:DescribeDBInstances",
         "rds:ModifyDBInstance",
         "rds:DeleteDBInstance",
         "rds:AddTagsToResource"
@@ -26,7 +27,6 @@
     },
     {
       "Action": [
-        "rds:DescribeDBClusters",
         "rds:ModifyDBCluster",
         "rds:DeleteDBCluster",
         "rds:AddTagsToResource"
