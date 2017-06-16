@@ -4,11 +4,12 @@ import (
 	"flag"
 	"os"
 
-	"github.com/AusDTO/pe-rds-broker/config"
-	"github.com/AusDTO/pe-rds-broker/internaldb"
 	"encoding/hex"
 	"errors"
 	"fmt"
+
+	"github.com/AusDTO/pe-rds-broker/config"
+	"github.com/AusDTO/pe-rds-broker/internaldb"
 	"github.com/AusDTO/pe-rds-broker/utils"
 )
 

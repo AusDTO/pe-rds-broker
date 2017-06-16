@@ -13,10 +13,10 @@ type ProvisionParameters struct {
 }
 
 type UpdateParameters struct {
-	ApplyImmediately            bool     `json:"apply_immediately"`
-	BackupRetentionPeriod       int64    `json:"backup_retention_period"`
-	PreferredBackupWindow       string   `json:"preferred_backup_window"`
-	PreferredMaintenanceWindow  string   `json:"preferred_maintenance_window"`
+	ApplyImmediately           bool      `json:"apply_immediately"`
+	BackupRetentionPeriod      int64     `json:"backup_retention_period"`
+	PreferredBackupWindow      string    `json:"preferred_backup_window"`
+	PreferredMaintenanceWindow string    `json:"preferred_maintenance_window"`
 	Extensions                 *[]string `json:"extensions"`
 }
 

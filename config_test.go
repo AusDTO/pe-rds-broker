@@ -6,9 +6,10 @@ import (
 
 	. "github.com/AusDTO/pe-rds-broker"
 
+	"io/ioutil"
+
 	"github.com/AusDTO/pe-rds-broker/rdsbroker"
 	"gopkg.in/yaml.v2"
-	"io/ioutil"
 )
 
 var _ = Describe("Config", func() {

@@ -1,8 +1,9 @@
 package rdsbroker
 
 import (
-	"github.com/AusDTO/pe-rds-broker/internaldb"
 	"fmt"
+
+	"github.com/AusDTO/pe-rds-broker/internaldb"
 	"github.com/pivotal-cf/brokerapi"
 )
 

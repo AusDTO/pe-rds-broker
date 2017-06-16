@@ -151,7 +151,7 @@ var _ = Describe("Service", func() {
 var _ = Describe("ServicePlan", func() {
 	var (
 		servicePlan ServicePlan
-		free = true
+		free        = true
 
 		validServicePlan = ServicePlan{
 			ID:          "Plan-1",

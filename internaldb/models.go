@@ -1,18 +1,19 @@
 package internaldb
 
 import (
-	"time"
-	"github.com/AusDTO/pe-rds-broker/utils"
 	"database/sql/driver"
-	"github.com/jinzhu/gorm"
 	"errors"
 	"fmt"
 	"strings"
+	"time"
+
+	"github.com/AusDTO/pe-rds-broker/utils"
+	"github.com/jinzhu/gorm"
 )
 
 type DBInstance struct {
 	// Managed by gorm
-	ID uint64 `gorm:"primary_key"`
+	ID        uint64 `gorm:"primary_key"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	// Managed by us
@@ -20,47 +21,47 @@ type DBInstance struct {
 	DBName     string
 	ServiceID  string
 	PlanID     string
-	Users []DBUser
-
+	Users      []DBUser
 }
 
 type DBUser struct {
-	ID uint64 `gorm:"primary_key"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DBInstance DBInstance // gorm belongs to relationship
-	DBInstanceID uint64
-	Username string
+	ID                uint64 `gorm:"primary_key"`
+	CreatedAt         time.Time
+	UpdatedAt         time.Time
+	DBInstance        DBInstance // gorm belongs to relationship
+	DBInstanceID      uint64
+	Username          string
 	EncryptedPassword []byte
-	IV []byte
-	Type DBUserType
-	Bindings []DBBinding
+	IV                []byte
+	Type              DBUserType
+	Bindings          []DBBinding
 }
 
 type DBBinding struct {
-	ID uint64 `gorm:"primary_key"`
+	ID        uint64 `gorm:"primary_key"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 	BindingID string
-	DBUser DBUser // gorm belongs to relationship
-	DBUserID uint64
+	DBUser    DBUser // gorm belongs to relationship
+	DBUserID  uint64
 }
 
 type DBUserType string
+
 const (
-	Master DBUserType = "master"
+	Master    DBUserType = "master"
 	SuperUser DBUserType = "superuser"
-	Standard DBUserType = "standard"
+	Standard  DBUserType = "standard"
 )
 
 // Remember to DB.Save() from the caller
 func NewInstance(serviceID, planID, instanceID, dbPrefix string, key []byte) (*DBInstance, error) {
 	instance := DBInstance{
-		ServiceID: serviceID,
-		PlanID: planID,
+		ServiceID:  serviceID,
+		PlanID:     planID,
 		InstanceID: instanceID,
-		Users: make([]DBUser, 1),
-		DBName: fmt.Sprintf("%s_%s", dbPrefix, strings.Replace(instanceID, "-", "_", -1)),
+		Users:      make([]DBUser, 1),
+		DBName:     fmt.Sprintf("%s_%s", dbPrefix, strings.Replace(instanceID, "-", "_", -1)),
 	}
 	var err error
 	instance.Users[0], err = NewUser(Master, key)
@@ -234,7 +235,6 @@ func (u *DBUserType) Scan(value interface{}) error {
 	return nil
 }
 
-func (u DBUserType) Value() (driver.Value, error)  {
+func (u DBUserType) Value() (driver.Value, error) {
 	return string(u), nil
 }
-

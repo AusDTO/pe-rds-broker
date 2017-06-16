@@ -12,9 +12,9 @@ import (
 )
 
 type PostgresEngine struct {
-	logger  lager.Logger
-	db      *sql.DB
-	config  config.DBConfig
+	logger lager.Logger
+	db     *sql.DB
+	config config.DBConfig
 }
 
 func NewPostgresEngine(logger lager.Logger) *PostgresEngine {

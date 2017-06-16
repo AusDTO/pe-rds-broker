@@ -13,10 +13,10 @@ import (
 	"github.com/pivotal-cf/brokerapi"
 
 	"github.com/AusDTO/pe-rds-broker/awsrds"
-	"github.com/AusDTO/pe-rds-broker/sqlengine"
-	"github.com/AusDTO/pe-rds-broker/internaldb"
-	"github.com/AusDTO/pe-rds-broker/utils"
 	"github.com/AusDTO/pe-rds-broker/config"
+	"github.com/AusDTO/pe-rds-broker/internaldb"
+	"github.com/AusDTO/pe-rds-broker/sqlengine"
+	"github.com/AusDTO/pe-rds-broker/utils"
 )
 
 const instanceIDLogKey = "instance-id"

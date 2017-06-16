@@ -5,16 +5,18 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
-	"strings"
-	"regexp"
 	"fmt"
-	"code.cloudfoundry.org/lager"
 	"log"
 	"os"
+	"regexp"
+	"strings"
+
+	"code.cloudfoundry.org/lager"
 )
 
 // Must be a multiple of 4
 const PasswordLength = 24
+
 // Must be a multiple of 4 plus 1
 // Must be <= 16 because mysql
 const UsernameLength = 13

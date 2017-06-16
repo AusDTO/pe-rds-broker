@@ -4,8 +4,9 @@ import (
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
-	. "github.com/AusDTO/pe-rds-broker/utils"
 	"strings"
+
+	. "github.com/AusDTO/pe-rds-broker/utils"
 )
 
 var _ = Describe("UsernameLength", func() {
@@ -108,11 +109,11 @@ var _ = Describe("IsValidExtensionName", func() {
 var _ = Describe("DBUsername", func() {
 	var (
 		requestedUsername string
-		instanceID string
-		appID string
-		engine string
-		shared bool
-		username string
+		instanceID        string
+		appID             string
+		engine            string
+		shared            bool
+		username          string
 	)
 	BeforeEach(func() {
 		requestedUsername = ""
@@ -130,7 +131,7 @@ var _ = Describe("DBUsername", func() {
 		})
 
 		Context("dedicated instance", func() {
-			Context("with requestedUsername", func(){
+			Context("with requestedUsername", func() {
 				BeforeEach(func() {
 					requestedUsername = "custom"
 				})
@@ -140,7 +141,7 @@ var _ = Describe("DBUsername", func() {
 				})
 			})
 
-			Context("without requestedUsername but with appID", func(){
+			Context("without requestedUsername but with appID", func() {
 				BeforeEach(func() {
 					appID = "app-id"
 				})
@@ -162,7 +163,7 @@ var _ = Describe("DBUsername", func() {
 				shared = true
 			})
 
-			Context("with requestedUsername", func(){
+			Context("with requestedUsername", func() {
 				BeforeEach(func() {
 					requestedUsername = "custom"
 				})
@@ -172,7 +173,7 @@ var _ = Describe("DBUsername", func() {
 				})
 			})
 
-			Context("without requestedUsername but with appID", func(){
+			Context("without requestedUsername but with appID", func() {
 				BeforeEach(func() {
 					appID = "app-id"
 				})
@@ -206,7 +207,7 @@ var _ = Describe("DBUsername", func() {
 			engine = "mysql"
 		})
 
-		Context("with requestedUsername", func(){
+		Context("with requestedUsername", func() {
 			BeforeEach(func() {
 				requestedUsername = "custom"
 			})

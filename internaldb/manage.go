@@ -1,9 +1,10 @@
 package internaldb
 
 import (
-	"github.com/jinzhu/gorm"
-	"code.cloudfoundry.org/lager"
 	"fmt"
+
+	"code.cloudfoundry.org/lager"
+	"github.com/jinzhu/gorm"
 )
 
 func RotateKey(db *gorm.DB, old_key, new_key []byte, logger lager.Logger, failFast bool) error {
@@ -21,12 +22,12 @@ func RotateKey(db *gorm.DB, old_key, new_key []byte, logger lager.Logger, failFa
 		}
 		err = user.SetPassword(password, new_key)
 		if err != nil {
-			logger.Error("encrypt-password", err, lager.Data{"instance":instance.InstanceID, "user":user.Username})
+			logger.Error("encrypt-password", err, lager.Data{"instance": instance.InstanceID, "user": user.Username})
 			return err
 		}
 		err = db.Save(&user).Error
 		if err != nil {
-			logger.Error("save-password", err, lager.Data{"instance":instance.InstanceID, "user":user.Username})
+			logger.Error("save-password", err, lager.Data{"instance": instance.InstanceID, "user": user.Username})
 			return err
 		}
 		return err

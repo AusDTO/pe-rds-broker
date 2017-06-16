@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	logLevel string
+	logLevel   string
 	instanceID string
 )
 

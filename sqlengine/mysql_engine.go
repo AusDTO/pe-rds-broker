@@ -11,9 +11,9 @@ import (
 )
 
 type MySQLEngine struct {
-	logger  lager.Logger
-	db      *sql.DB
-	config  config.DBConfig
+	logger lager.Logger
+	db     *sql.DB
+	config config.DBConfig
 }
 
 func NewMySQLEngine(logger lager.Logger) *MySQLEngine {
@@ -155,9 +155,12 @@ func (d *MySQLEngine) JDBCURI(dbname string, username string, password string) s
 func (d *MySQLEngine) connectionString() string {
 	var tls string
 	switch d.config.Sslmode {
-	case config.Disable: tls = "false"
-	case config.RequireNoVerify: tls = "skip-verify"
-	case config.Verify: tls = "true"
+	case config.Disable:
+		tls = "false"
+	case config.RequireNoVerify:
+		tls = "skip-verify"
+	case config.Verify:
+		tls = "true"
 	}
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?tls=%s", d.config.Username, d.config.Password, d.config.Url, d.config.Port, d.config.DBName, tls)
 }

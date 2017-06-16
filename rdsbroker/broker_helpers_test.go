@@ -10,9 +10,9 @@ import (
 var _ = Describe("canUpdate", func() {
 	var (
 		oldPlan, newPlan ServicePlan
-		service Service
-		parameters UpdateParameters
-		update bool
+		service          Service
+		parameters       UpdateParameters
+		update           bool
 	)
 	BeforeEach(func() {
 		oldPlan.ID = "old-plan"

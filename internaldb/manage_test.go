@@ -3,26 +3,27 @@ package internaldb_test
 import (
 	. "github.com/AusDTO/pe-rds-broker/internaldb"
 
+	"encoding/hex"
+	"fmt"
+	"os"
+
+	"code.cloudfoundry.org/lager"
+	"code.cloudfoundry.org/lager/lagertest"
+	"github.com/AusDTO/pe-rds-broker/config"
+	"github.com/jinzhu/gorm"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
-	"github.com/jinzhu/gorm"
-	"code.cloudfoundry.org/lager"
-	"github.com/AusDTO/pe-rds-broker/config"
-	"code.cloudfoundry.org/lager/lagertest"
-	"encoding/hex"
-	"os"
-	"fmt"
 )
 
 var _ = Describe("Models", func() {
 	Context("RotateKey", func() {
 		var (
-			db *gorm.DB
+			db               *gorm.DB
 			old_key, new_key []byte
-			logger lager.Logger
-			failFast bool
-			instances []DBInstance
-			users []DBUser
+			logger           lager.Logger
+			failFast         bool
+			instances        []DBInstance
+			users            []DBUser
 		)
 		BeforeEach(func() {
 			logger = lager.NewLogger("rdsbroker_test")

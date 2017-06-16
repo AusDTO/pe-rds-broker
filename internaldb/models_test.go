@@ -10,10 +10,10 @@ import (
 var _ = Describe("Models", func() {
 	var (
 		encryptionKey = make([]byte, 32)
-		instanceID = "instance-id"
-		dbPrefix = "cf"
-		serviceID = "service-id"
-		planID = "plan-id"
+		instanceID    = "instance-id"
+		dbPrefix      = "cf"
+		serviceID     = "service-id"
+		planID        = "plan-id"
 	)
 	Describe("NewInstance", func() {
 		It("creates a master user", func() {
@@ -27,18 +27,18 @@ var _ = Describe("Models", func() {
 			Expect(instance.InstanceID).To(Equal("instance-id"))
 		})
 
-		It("errors with bad encryption key", func () {
+		It("errors with bad encryption key", func() {
 			_, err := NewInstance(serviceID, planID, instanceID, dbPrefix, make([]byte, 3))
 			Expect(err).To(HaveOccurred())
 		})
 	})
 
-	Describe("NewUser", func () {
-		Context("has random", func () {
+	Describe("NewUser", func() {
+		Context("has random", func() {
 			var (
 				one, two DBUser
 			)
-			BeforeEach(func () {
+			BeforeEach(func() {
 				var err error
 				one, err = NewUser(Standard, encryptionKey)
 				Expect(err).NotTo(HaveOccurred())
@@ -67,24 +67,24 @@ var _ = Describe("Models", func() {
 			})
 		})
 
-		It("errors with bad encryption key", func () {
+		It("errors with bad encryption key", func() {
 			_, err := NewUser(Standard, make([]byte, 3))
 			Expect(err).To(HaveOccurred())
 		})
 	})
 
-	Describe("find user methods", func () {
+	Describe("find user methods", func() {
 		var (
-			masterUser = DBUser{Type: Master, Username: "master"}
-			binding1 = DBBinding{BindingID: "one"}
-			binding2 = DBBinding{BindingID: "two"}
-			binding3 = DBBinding{BindingID: "three"}
+			masterUser   = DBUser{Type: Master, Username: "master"}
+			binding1     = DBBinding{BindingID: "one"}
+			binding2     = DBBinding{BindingID: "two"}
+			binding3     = DBBinding{BindingID: "three"}
 			bindingUser1 = DBUser{Type: Standard, Username: "bind1", Bindings: []DBBinding{binding1}}
 			bindingUser2 = DBUser{Type: Standard, Username: "bind2", Bindings: []DBBinding{binding2, binding3}}
-			instance = DBInstance{Users: []DBUser{bindingUser1, masterUser, bindingUser2}}
+			instance     = DBInstance{Users: []DBUser{bindingUser1, masterUser, bindingUser2}}
 		)
 
-		Describe("MasterUser", func () {
+		Describe("MasterUser", func() {
 			It("finds the right user", func() {
 				Expect(instance.MasterUser()).To(Equal(&masterUser))
 			})

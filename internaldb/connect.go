@@ -1,14 +1,14 @@
 package internaldb
 
 import (
-	"fmt"
 	"errors"
+	"fmt"
 
-	"github.com/jinzhu/gorm"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
 	"code.cloudfoundry.org/lager"
 	"github.com/AusDTO/pe-rds-broker/config"
+	"github.com/jinzhu/gorm"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 // Supported DB types:
@@ -53,10 +53,10 @@ func migrate(db *gorm.DB, dbConfig *config.DBConfig, logger lager.Logger) {
 	// AutoMigrate does not handle FK contraints, nor does sqlite
 	if dbConfig.DBType == "postgres" {
 		err := db.Model(&DBUser{}).AddForeignKey(
-			"db_instance_id", // instance_id field of the DBUser table
+			"db_instance_id",   // instance_id field of the DBUser table
 			"db_instances(id)", // references the id field of the db_instances table
-			"CASCADE", // on delete CASCADE
-			"RESTRICT", // on update RESTRICT
+			"CASCADE",          // on delete CASCADE
+			"RESTRICT",         // on update RESTRICT
 		).Error
 		if err != nil {
 			logger.Error("add-fk", err)

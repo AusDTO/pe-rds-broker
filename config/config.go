@@ -1,18 +1,19 @@
 package config
 
 import (
-	"os"
-	"errors"
 	"encoding/hex"
+	"errors"
 	"fmt"
+	"os"
 	"strconv"
 )
 
 type SSLMode string
+
 const (
-	Disable = "disable"
+	Disable         = "disable"
 	RequireNoVerify = "require"
-	Verify = "verify-full"
+	Verify          = "verify-full"
 )
 
 //   Valid SSL modes:
@@ -29,14 +30,13 @@ type DBConfig struct {
 	Port     int64
 }
 
-
 type EnvConfig struct {
-	Username string
-	Password string
-	EncryptionKey []byte
-	InternalDBConfig *DBConfig
+	Username               string
+	Password               string
+	EncryptionKey          []byte
+	InternalDBConfig       *DBConfig
 	SharedPostgresDBConfig *DBConfig
-	SharedMysqlDBConfig *DBConfig
+	SharedMysqlDBConfig    *DBConfig
 }
 
 func LoadEnvConfig() (*EnvConfig, error) {
@@ -79,11 +79,11 @@ func LoadEnvConfig() (*EnvConfig, error) {
 func loadDBEnvConfig(version string, defaultPort int64) (*DBConfig, error) {
 	var dbconfig DBConfig
 	var err error
-	dbconfig.DBName   = os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_NAME", version))
+	dbconfig.DBName = os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_NAME", version))
 	dbconfig.Username = os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_USERNAME", version))
 	dbconfig.Password = os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_PASSWORD", version))
-	dbconfig.Url      = os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_URL", version))
-	dbconfig.Sslmode  = SSLMode(os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_SSLMODE", version)))
+	dbconfig.Url = os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_URL", version))
+	dbconfig.Sslmode = SSLMode(os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_SSLMODE", version)))
 	port_str := os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_PORT", version))
 	if port_str != "" {
 		dbconfig.Port, err = strconv.ParseInt(port_str, 0, 64)

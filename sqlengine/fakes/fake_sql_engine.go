@@ -2,13 +2,14 @@ package fakes
 
 import (
 	"fmt"
+
 	"github.com/AusDTO/pe-rds-broker/config"
 )
 
 type FakeSQLEngine struct {
-	OpenCalled   bool
-	OpenConfig   config.DBConfig
-	OpenError    error
+	OpenCalled bool
+	OpenConfig config.DBConfig
+	OpenError  error
 
 	CloseCalled bool
 
