@@ -878,7 +878,7 @@ var _ = Describe("RDS Broker", func() {
 			It("returns the proper error", func() {
 				_, err := Provision()
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal string into Go value of type int64"))
+				Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal string"))
 			})
 
 			Context("and user provision parameters are not allowed", func() {
@@ -1733,7 +1733,7 @@ var _ = Describe("RDS Broker", func() {
 			It("returns the proper error", func() {
 				_, err := Update()
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal string into Go value of type int64"))
+				Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal string"))
 			})
 
 			Context("and user update parameters are not allowed", func() {
@@ -2101,7 +2101,7 @@ var _ = Describe("RDS Broker", func() {
 			It("returns the proper error", func() {
 				_, err := Bind()
 				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal bool into Go value of type string"))
+				Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal bool"))
 			})
 
 			Context("and user bind parameters are not allowed", func() {
