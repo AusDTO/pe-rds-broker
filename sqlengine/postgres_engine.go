@@ -3,8 +3,10 @@ package sqlengine
 import (
 	"database/sql"
 	"fmt"
+	"net/url"
+	"strings"
 
-	_ "github.com/lib/pq" // PostgreSQL Driver
+	"github.com/lib/pq" // PostgreSQL Driver
 
 	"code.cloudfoundry.org/lager"
 	"github.com/AusDTO/pe-rds-broker/config"
@@ -45,11 +47,10 @@ func (d *PostgresEngine) Close() {
 }
 
 func (d *PostgresEngine) ExistsDB(dbname string) (bool, error) {
-	selectDatabaseStatement := "SELECT datname FROM pg_database WHERE datname='" + dbname + "'"
-	d.logger.Debug("database-exists", lager.Data{"statement": selectDatabaseStatement})
+	d.logger.Debug("database-exists", lager.Data{"statement": "Checking if database exists:" + dbname})
 
 	var dummy string
-	err := d.db.QueryRow(selectDatabaseStatement).Scan(&dummy)
+	err := d.db.QueryRow("SELECT datname FROM pg_database WHERE datname=$1", dbname).Scan(&dummy)
 	switch {
 	case err == sql.ErrNoRows:
 		return false, nil
@@ -70,7 +71,7 @@ func (d *PostgresEngine) CreateDB(dbname string) error {
 		return nil
 	}
 
-	createDBStatement := "CREATE DATABASE \"" + dbname + "\""
+	createDBStatement := fmt.Sprintf("CREATE DATABASE %s", pq.QuoteIdentifier(dbname))
 	d.logger.Debug("create-database", lager.Data{"statement": createDBStatement})
 
 	if _, err := d.db.Exec(createDBStatement); err != nil {
@@ -86,7 +87,7 @@ func (d *PostgresEngine) DropDB(dbname string) error {
 		return err
 	}
 
-	dropDBStatement := "DROP DATABASE IF EXISTS \"" + dbname + "\""
+	dropDBStatement := fmt.Sprintf("DROP DATABASE IF EXISTS %s", pq.QuoteIdentifier(dbname))
 	d.logger.Debug("drop-database", lager.Data{"statement": dropDBStatement})
 
 	if _, err := d.db.Exec(dropDBStatement); err != nil {
@@ -106,7 +107,8 @@ func (d *PostgresEngine) CreateUser(username string, password string) error {
 		return err
 	}
 	if exists {
-		loginStatement := "ALTER ROLE \"" + username + "\" WITH LOGIN PASSWORD '" + password + "'"
+		// Password is not recognized a parameter, nor an identifier. Use our own escape method.
+		loginStatement := fmt.Sprintf("ALTER ROLE %s WITH LOGIN PASSWORD %s", pq.QuoteIdentifier(username), postgresQuoteValue(password))
 		d.logger.Debug("login", lager.Data{"statement": loginStatement})
 
 		if _, err := d.db.Exec(loginStatement); err != nil {
@@ -114,7 +116,8 @@ func (d *PostgresEngine) CreateUser(username string, password string) error {
 			return err
 		}
 	} else {
-		createUserStatement := "CREATE USER \"" + username + "\" WITH PASSWORD '" + password + "'"
+		// Password is not recognized a parameter, nor an identifier. Use our own escape method.
+		createUserStatement := fmt.Sprintf("CREATE USER %s WITH PASSWORD %s", pq.QuoteIdentifier(username), postgresQuoteValue(password))
 		d.logger.Debug("create-user", lager.Data{"statement": createUserStatement})
 
 		if _, err := d.db.Exec(createUserStatement); err != nil {
@@ -130,7 +133,7 @@ func (d *PostgresEngine) DropUser(username string) error {
 	// For PostgreSQL we don't drop the user because it might still be owner of some objects
 	// We make it so they can't log in instead
 
-	nologinStatement := "ALTER ROLE \"" + username + "\" WITH NOLOGIN"
+	nologinStatement := fmt.Sprintf("ALTER ROLE %s WITH NOLOGIN", pq.QuoteIdentifier(username))
 	d.logger.Debug("nologin", lager.Data{"statement": nologinStatement})
 
 	if _, err := d.db.Exec(nologinStatement); err != nil {
@@ -142,7 +145,7 @@ func (d *PostgresEngine) DropUser(username string) error {
 }
 
 func (d *PostgresEngine) GrantPrivileges(dbname string, username string) error {
-	grantPrivilegesStatement := "GRANT ALL PRIVILEGES ON DATABASE \"" + dbname + "\" TO \"" + username + "\""
+	grantPrivilegesStatement := fmt.Sprintf("GRANT ALL PRIVILEGES ON DATABASE %s TO %s", pq.QuoteIdentifier(dbname), pq.QuoteIdentifier(username))
 	d.logger.Debug("grant-privileges", lager.Data{"statement": grantPrivilegesStatement})
 
 	if _, err := d.db.Exec(grantPrivilegesStatement); err != nil {
@@ -154,7 +157,7 @@ func (d *PostgresEngine) GrantPrivileges(dbname string, username string) error {
 }
 
 func (d *PostgresEngine) RevokePrivileges(dbname string, username string) error {
-	revokePrivilegesStatement := "REVOKE ALL PRIVILEGES ON DATABASE \"" + dbname + "\" FROM \"" + username + "\""
+	revokePrivilegesStatement := fmt.Sprintf("REVOKE ALL PRIVILEGES ON DATABASE %s FROM %s", pq.QuoteIdentifier(dbname), pq.QuoteIdentifier(username))
 	d.logger.Debug("revoke-privileges", lager.Data{"statement": revokePrivilegesStatement})
 
 	if _, err := d.db.Exec(revokePrivilegesStatement); err != nil {
@@ -201,7 +204,7 @@ func (d *PostgresEngine) SetExtensions(extensions []string) error {
 		}
 		if !found {
 			d.logger.Debug("drop-extension", lager.Data{"extension": old})
-			if _, err := d.db.Exec(fmt.Sprintf("DROP EXTENSION \"%s\"", old)); err != nil {
+			if _, err := d.db.Exec(fmt.Sprintf("DROP EXTENSION %s", pq.QuoteIdentifier(old))); err != nil {
 				return err
 			}
 		}
@@ -220,7 +223,7 @@ func (d *PostgresEngine) SetExtensions(extensions []string) error {
 		}
 		if !found {
 			d.logger.Debug("create-extension", lager.Data{"extension": new})
-			if _, err := d.db.Exec(fmt.Sprintf("CREATE EXTENSION \"%s\"", new)); err != nil {
+			if _, err := d.db.Exec(fmt.Sprintf("CREATE EXTENSION %s", pq.QuoteIdentifier(new))); err != nil {
 				return err
 			}
 		}
@@ -229,18 +232,33 @@ func (d *PostgresEngine) SetExtensions(extensions []string) error {
 }
 
 func (d *PostgresEngine) URI(dbname string, username string, password string) string {
-	return fmt.Sprintf("postgres://%s:%s@%s:%d/%s?reconnect=true", username, password, d.config.Url, d.config.Port, dbname)
+	return (&url.URL{
+		Scheme: "postgres",
+		User:   url.UserPassword(username, password),
+		Host:   fmt.Sprintf("%s:%d", d.config.Url, d.config.Port),
+		Path:   fmt.Sprintf("/%s", url.QueryEscape(dbname)), // TODO: should be url.PathEscape() - not present in targeted version of Go.
+		RawQuery: (&url.Values{
+			"reconnect": []string{"true"}, // TODO - why are we setting this?
+		}).Encode(),
+	}).String()
 }
 
 func (d *PostgresEngine) JDBCURI(dbname string, username string, password string) string {
-	return fmt.Sprintf("jdbc:postgresql://%s:%d/%s?user=%s&password=%s", d.config.Url, d.config.Port, dbname, username, password)
+	return fmt.Sprintf("jdbc:%s", (&url.URL{
+		Scheme: "postgresql",
+		Host:   fmt.Sprintf("%s:%d", d.config.Url, d.config.Port),
+		Path:   fmt.Sprintf("/%s", url.QueryEscape(dbname)), // TODO: should be url.PathEscape() - not present in targeted version of Go.
+		RawQuery: (&url.Values{
+			"user":     []string{username},
+			"password": []string{password},
+		}).Encode(),
+	}).String())
 }
 
 func (d *PostgresEngine) dropConnections(dbname string) error {
-	dropDBConnectionsStatement := "SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = '" + dbname + "' AND pid <> pg_backend_pid()"
-	d.logger.Debug("drop-connections", lager.Data{"statement": dropDBConnectionsStatement})
+	d.logger.Debug("drop-connections", lager.Data{"statement": "Dropping connections for db:" + dbname})
 
-	if _, err := d.db.Exec(dropDBConnectionsStatement); err != nil {
+	if _, err := d.db.Exec("SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname = $1 AND pid <> pg_backend_pid()", dbname); err != nil {
 		d.logger.Error("sql-error", err)
 		return err
 	}
@@ -249,9 +267,40 @@ func (d *PostgresEngine) dropConnections(dbname string) error {
 }
 
 func (d *PostgresEngine) connectionString() string {
-	return fmt.Sprintf("host=%s port=%d dbname=%s user='%s' password='%s' sslmode='%s'", d.config.Url, d.config.Port, d.config.DBName, d.config.Username, d.config.Password, d.config.Sslmode)
+	return fmt.Sprintf("host=%s port=%d dbname=%s user=%s password=%s sslmode=%s",
+		postgresQuoteConnectionStringValue(d.config.Url),
+		d.config.Port, // no escape as is an integer
+		postgresQuoteConnectionStringValue(d.config.DBName),
+		postgresQuoteConnectionStringValue(d.config.Username),
+		postgresQuoteConnectionStringValue(d.config.Password),
+		postgresQuoteConnectionStringValue(string(d.config.Sslmode)))
 }
 
 func (d *PostgresEngine) Config() config.DBConfig {
 	return d.config
+}
+
+// postgresQuoteValue will quote the given value and escape
+// any single-quote characters. If a null byte is present, it will
+// be truncated there before continuing.
+// This function should be used sparingly, it is nearly always more
+// appropriate to use paramterization ($1) or pq.QuoteIdentifier,
+// however some postgres statements don't support these.
+func postgresQuoteValue(v string) string {
+	end := strings.IndexRune(v, 0)
+	if end > -1 {
+		v = v[:end]
+	}
+	return `'` + strings.Replace(v, `'`, `''`, -1) + `'`
+}
+
+// postgresQuoteConnectionStringValue will quote the given value and escape
+// any single-quote characters and backslash characters. If a null byte is present, it will
+// be truncated there before continuing.
+func postgresQuoteConnectionStringValue(v string) string {
+	end := strings.IndexRune(v, 0)
+	if end > -1 {
+		v = v[:end]
+	}
+	return `'` + strings.Replace(strings.Replace(v, `\`, `\\`, -1), `'`, `\'`, -1) + `'`
 }
