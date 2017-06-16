@@ -1,9 +1,9 @@
 package rdsbroker_test
 
 import (
-	"errors"
 	"context"
 	"encoding/json"
+	"errors"
 
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
@@ -14,13 +14,14 @@ import (
 	"code.cloudfoundry.org/lager/lagertest"
 	"github.com/pivotal-cf/brokerapi"
 
+	"os"
+
 	"github.com/AusDTO/pe-rds-broker/awsrds"
 	rdsfake "github.com/AusDTO/pe-rds-broker/awsrds/fakes"
-	sqlfake "github.com/AusDTO/pe-rds-broker/sqlengine/fakes"
-	"github.com/AusDTO/pe-rds-broker/internaldb"
-	"os"
-	"github.com/jinzhu/gorm"
 	"github.com/AusDTO/pe-rds-broker/config"
+	"github.com/AusDTO/pe-rds-broker/internaldb"
+	sqlfake "github.com/AusDTO/pe-rds-broker/sqlengine/fakes"
+	"github.com/jinzhu/gorm"
 )
 
 var _ = Describe("RDS Broker", func() {
@@ -45,10 +46,10 @@ var _ = Describe("RDS Broker", func() {
 		sharedPostgres *sqlfake.FakeSQLEngine
 		sharedMysql    *sqlfake.FakeSQLEngine
 
-		testSink *lagertest.TestSink
-		logger   lager.Logger
+		testSink      *lagertest.TestSink
+		logger        lager.Logger
 		encryptionKey []byte
-		internalDB *gorm.DB
+		internalDB    *gorm.DB
 
 		rdsBroker *RDSBroker
 
@@ -190,10 +191,10 @@ var _ = Describe("RDS Broker", func() {
 		BeforeEach(func() {
 			properCatalogResponse = []brokerapi.Service{
 				brokerapi.Service{
-					ID:             "Service-1",
-					Name:           "Service 1",
-					Description:    "This is the Service 1",
-					Bindable:       serviceBindable,
+					ID:            "Service-1",
+					Name:          "Service 1",
+					Description:   "This is the Service 1",
+					Bindable:      serviceBindable,
 					PlanUpdatable: planUpdateable,
 					Plans: []brokerapi.ServicePlan{
 						brokerapi.ServicePlan{
@@ -209,10 +210,10 @@ var _ = Describe("RDS Broker", func() {
 					},
 				},
 				brokerapi.Service{
-					ID:             "Service-2",
-					Name:           "Service 2",
-					Description:    "This is the Service 2",
-					Bindable:       serviceBindable,
+					ID:            "Service-2",
+					Name:          "Service 2",
+					Description:   "This is the Service 2",
+					Bindable:      serviceBindable,
 					PlanUpdatable: planUpdateable,
 					Plans: []brokerapi.ServicePlan{
 						brokerapi.ServicePlan{
@@ -1045,14 +1046,14 @@ var _ = Describe("RDS Broker", func() {
 
 		BeforeEach(func() {
 			updateDetails = brokerapi.UpdateDetails{
-				ServiceID:  "Service-1",
-				PlanID:     "Plan-3",
+				ServiceID:     "Service-1",
+				PlanID:        "Plan-3",
 				RawParameters: json.RawMessage(""),
 				PreviousValues: brokerapi.PreviousValues{
-					PlanID:         "Plan-1",
-					ServiceID:      "Service-1",
-					OrgID:          "organization-id",
-					SpaceID:        "space-id",
+					PlanID:    "Plan-1",
+					ServiceID: "Service-1",
+					OrgID:     "organization-id",
+					SpaceID:   "space-id",
 				},
 			}
 			acceptsIncomplete = true
@@ -1862,7 +1863,7 @@ var _ = Describe("RDS Broker", func() {
 			Expect(err).ToNot(HaveOccurred())
 		})
 
-		It ("doesn't delete the internaldb instance", func() {
+		It("doesn't delete the internaldb instance", func() {
 			_, err := Deprovision()
 			Expect(err).ToNot(HaveOccurred())
 			Expect(internaldb.FindInstance(internalDB, instanceID)).NotTo(BeNil())
@@ -1945,7 +1946,7 @@ var _ = Describe("RDS Broker", func() {
 					Expect(err).ToNot(HaveOccurred())
 				})
 
-				It ("deletes the internaldb instance", func() {
+				It("deletes the internaldb instance", func() {
 					_, err := Deprovision()
 					Expect(err).ToNot(HaveOccurred())
 					Expect(internaldb.FindInstance(internalDB, instanceID)).To(BeNil())
@@ -1972,7 +1973,7 @@ var _ = Describe("RDS Broker", func() {
 					Expect(err).ToNot(HaveOccurred())
 				})
 
-				It ("deletes the internaldb instance", func() {
+				It("deletes the internaldb instance", func() {
 					_, err := Deprovision()
 					Expect(err).ToNot(HaveOccurred())
 					Expect(internaldb.FindInstance(internalDB, instanceID)).To(BeNil())
@@ -2023,28 +2024,28 @@ var _ = Describe("RDS Broker", func() {
 	var _ = Describe("Bind", func() {
 		var (
 			bindDetails brokerapi.BindDetails
-			instance *internaldb.DBInstance
+			instance    *internaldb.DBInstance
 		)
 
 		BeforeEach(func() {
 			bindDetails = brokerapi.BindDetails{
-				ServiceID:  "Service-1",
-				PlanID:     "Plan-1",
-				AppGUID:    "Application-1",
+				ServiceID:     "Service-1",
+				PlanID:        "Plan-1",
+				AppGUID:       "Application-1",
 				RawParameters: json.RawMessage(""),
 			}
 			rdsProperties1.Engine = "postgres"
 
 			dbInstance.DescribeDBInstanceDetails = awsrds.DBInstanceDetails{
-				Identifier:     dbInstanceIdentifier,
-				Address:        "endpoint-address",
-				Port:           3306,
+				Identifier: dbInstanceIdentifier,
+				Address:    "endpoint-address",
+				Port:       3306,
 			}
 
 			dbCluster.DescribeDBClusterDetails = awsrds.DBClusterDetails{
-				Identifier:     dbClusterIdentifier,
-				Endpoint:       "endpoint-address",
-				Port:           3306,
+				Identifier: dbClusterIdentifier,
+				Endpoint:   "endpoint-address",
+				Port:       3306,
 			}
 			instance = MakeInstance()
 		})
@@ -2400,7 +2401,7 @@ var _ = Describe("RDS Broker", func() {
 	var _ = Describe("Unbind", func() {
 		var (
 			unbindDetails brokerapi.UnbindDetails
-			dbUsername string
+			dbUsername    string
 		)
 
 		BeforeEach(func() {
@@ -2410,15 +2411,15 @@ var _ = Describe("RDS Broker", func() {
 			}
 
 			dbInstance.DescribeDBInstanceDetails = awsrds.DBInstanceDetails{
-				Identifier:     dbInstanceIdentifier,
-				Address:        "endpoint-address",
-				Port:           3306,
+				Identifier: dbInstanceIdentifier,
+				Address:    "endpoint-address",
+				Port:       3306,
 			}
 
 			dbCluster.DescribeDBClusterDetails = awsrds.DBClusterDetails{
-				Identifier:     dbClusterIdentifier,
-				Endpoint:       "endpoint-address",
-				Port:           3306,
+				Identifier: dbClusterIdentifier,
+				Endpoint:   "endpoint-address",
+				Port:       3306,
 			}
 			instance := MakeInstance()
 			dbUsername = "username"
@@ -2426,7 +2427,7 @@ var _ = Describe("RDS Broker", func() {
 			Expect(err).NotTo(HaveOccurred())
 		})
 
-		Unbind := func() (error) {
+		Unbind := func() error {
 			return rdsBroker.Unbind(context.Background(), instanceID, bindingID, unbindDetails)
 		}
 
@@ -2640,12 +2641,12 @@ var _ = Describe("RDS Broker", func() {
 
 		JustBeforeEach(func() {
 			dbInstance.DescribeDBInstanceDetails = awsrds.DBInstanceDetails{
-				Identifier:     dbInstanceIdentifier,
-				Engine:         "test-engine",
-				Address:        "endpoint-address",
-				Port:           3306,
-				DBName:         "test-db",
-				Status:         dbInstanceStatus,
+				Identifier: dbInstanceIdentifier,
+				Engine:     "test-engine",
+				Address:    "endpoint-address",
+				Port:       3306,
+				DBName:     "test-db",
+				Status:     dbInstanceStatus,
 			}
 
 			properLastOperationResponse = brokerapi.LastOperation{
