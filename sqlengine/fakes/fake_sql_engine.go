@@ -96,7 +96,7 @@ func (f *FakeSQLEngine) DropUser(username string) error {
 	return f.DropUserError
 }
 
-func (f *FakeSQLEngine) GrantPrivileges(dbname string, username string) error {
+func (f *FakeSQLEngine) GrantPrivileges(dbname string, username, password string) error {
 	f.GrantPrivilegesCalled = true
 	f.GrantPrivilegesDBName = dbname
 	f.GrantPrivilegesUsername = username

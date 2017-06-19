@@ -362,7 +362,7 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 			return binding, err
 		}
 
-		if err = sqlEngine.GrantPrivileges(instance.DBName, user.Username); err != nil {
+		if err = sqlEngine.GrantPrivileges(instance.DBName, user.Username, userPassword); err != nil {
 			return binding, err
 		}
 	}
