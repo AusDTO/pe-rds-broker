@@ -115,7 +115,7 @@ func (d *MySQLEngine) DropUser(username string) error {
 	return nil
 }
 
-func (d *MySQLEngine) GrantPrivileges(dbname string, username string) error {
+func (d *MySQLEngine) GrantPrivileges(dbname string, username, password string) error {
 	grantPrivilegesStatement := "GRANT ALL PRIVILEGES ON " + dbname + ".* TO '" + username + "'@'%'"
 	d.logger.Debug("grant-privileges", lager.Data{"statement": grantPrivilegesStatement})
 

@@ -10,7 +10,7 @@ type SQLEngine interface {
 	DropDB(dbname string) error
 	CreateUser(username string, password string) error
 	DropUser(username string) error
-	GrantPrivileges(dbname string, username string) error
+	GrantPrivileges(dbname string, username, password string) error
 	RevokePrivileges(dbname string, username string) error
 	SetExtensions(extensions []string) error
 	URI(dbname string, username string, password string) string

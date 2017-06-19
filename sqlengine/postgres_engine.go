@@ -43,6 +43,7 @@ func (d *PostgresEngine) Open(conf config.DBConfig) error {
 func (d *PostgresEngine) Close() {
 	if d.db != nil {
 		d.db.Close()
+		d.db = nil
 	}
 }
 
@@ -144,7 +145,7 @@ func (d *PostgresEngine) DropUser(username string) error {
 	return nil
 }
 
-func (d *PostgresEngine) GrantPrivileges(dbname string, username string) error {
+func (d *PostgresEngine) GrantPrivileges(dbname string, username, password string) error {
 	grantPrivilegesStatement := fmt.Sprintf("GRANT ALL PRIVILEGES ON DATABASE %s TO %s", pq.QuoteIdentifier(dbname), pq.QuoteIdentifier(username))
 	d.logger.Debug("grant-privileges", lager.Data{"statement": grantPrivilegesStatement})
 
@@ -153,7 +154,45 @@ func (d *PostgresEngine) GrantPrivileges(dbname string, username string) error {
 		return err
 	}
 
-	return nil
+	// Additionally, make sure we have permissions to all the stuff we can come up with
+	// For these, we need to connect directly to the database that we wish to manipulate.
+	dbAsUser, err := sql.Open("postgres", d.URI(dbname, username, password))
+	if err != nil {
+		d.logger.Error("sql-error", err)
+		return err
+	}
+	defer dbAsUser.Close()
+
+	// Get schema from database
+	rs, err := dbAsUser.Query("SELECT schema_name FROM information_schema.schemata")
+	if err != nil {
+		d.logger.Error("sql-error", err)
+		return err
+	}
+	defer rs.Close()
+	for rs.Next() {
+		var schema string
+		err = rs.Scan(&schema)
+		if err != nil {
+			d.logger.Error("sql-error", err)
+			return err
+		}
+		if strings.HasPrefix(schema, "pg_") || schema == "information_schema" {
+			continue // skip system schema
+		}
+		for _, thing := range []string{"TABLES", "SEQUENCES", "FUNCTIONS"} {
+			grantPrivilegesStatement = fmt.Sprintf("GRANT ALL PRIVILEGES ON ALL %s IN SCHEMA %s TO %s",
+				thing,
+				pq.QuoteIdentifier(schema),
+				pq.QuoteIdentifier(username))
+			d.logger.Debug("grant-privileges", lager.Data{"statement": grantPrivilegesStatement})
+			if _, err := dbAsUser.Exec(grantPrivilegesStatement); err != nil {
+				d.logger.Error("sql-error", err)
+				return err
+			}
+		}
+	}
+	return rs.Err()
 }
 
 func (d *PostgresEngine) RevokePrivileges(dbname string, username string) error {
@@ -237,9 +276,6 @@ func (d *PostgresEngine) URI(dbname string, username string, password string) st
 		User:   url.UserPassword(username, password),
 		Host:   fmt.Sprintf("%s:%d", d.config.Url, d.config.Port),
 		Path:   fmt.Sprintf("/%s", url.QueryEscape(dbname)), // TODO: should be url.PathEscape() - not present in targeted version of Go.
-		RawQuery: (&url.Values{
-			"reconnect": []string{"true"}, // TODO - why are we setting this?
-		}).Encode(),
 	}).String()
 }
 
