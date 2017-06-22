@@ -2093,29 +2093,6 @@ var _ = Describe("RDS Broker", func() {
 			Expect(sqlEngine.CloseCalled).To(BeTrue())
 		})
 
-		Context("when Parameters are not valid", func() {
-			BeforeEach(func() {
-				bindDetails.RawParameters = json.RawMessage("{\"username\": true}")
-			})
-
-			It("returns the proper error", func() {
-				_, err := Bind()
-				Expect(err).To(HaveOccurred())
-				Expect(err.Error()).To(ContainSubstring("json: cannot unmarshal bool"))
-			})
-
-			Context("and user bind parameters are not allowed", func() {
-				BeforeEach(func() {
-					allowUserBindParameters = false
-				})
-
-				It("does not return an error", func() {
-					_, err := Bind()
-					Expect(err).ToNot(HaveOccurred())
-				})
-			})
-		})
-
 		Context("when Service is not bindable", func() {
 			BeforeEach(func() {
 				serviceBindable = false
@@ -2125,77 +2102,6 @@ var _ = Describe("RDS Broker", func() {
 				_, err := Bind()
 				Expect(err).To(HaveOccurred())
 				Expect(err.Error()).To(Equal("Service is not bindable"))
-			})
-		})
-
-		Context("When given a custom username", func() {
-			BeforeEach(func() {
-				bindDetails.RawParameters = json.RawMessage("{\"username\": \"custom_user\"}")
-			})
-
-			It("returns the proper response", func() {
-				bindingResponse, err := Bind()
-				Expect(err).ToNot(HaveOccurred())
-				credentials := bindingResponse.Credentials.(*CredentialsHash)
-				Expect(credentials.Username).To(Equal("custom_user"))
-			})
-
-			It("makes the proper calls", func() {
-				_, err := Bind()
-				Expect(err).ToNot(HaveOccurred())
-				Expect(sqlEngine.CreateUserCalled).To(BeTrue())
-				Expect(sqlEngine.CreateUserUsername).To(Equal("custom_user"))
-				Expect(sqlEngine.GrantPrivilegesCalled).To(BeTrue())
-				Expect(sqlEngine.GrantPrivilegesUsername).To(Equal("custom_user"))
-			})
-
-			Context("that's invalid", func() {
-				BeforeEach(func() {
-					bindDetails.RawParameters = json.RawMessage("{\"username\": \"****\"}")
-				})
-
-				It("returns the proper error", func() {
-					_, err := Bind()
-					Expect(err).To(HaveOccurred())
-					Expect(err.Error()).To(Equal("Username must begin with a letter and contain only alphanumeric characters"))
-				})
-			})
-
-			Context("that already exists", func() {
-				var (
-					password string
-				)
-				BeforeEach(func() {
-					user, _, err := instance.Bind(internalDB, "binding-zero", "custom_user", internaldb.Standard, encryptionKey)
-					Expect(err).NotTo(HaveOccurred())
-					password, err = user.Password(encryptionKey)
-					Expect(err).NotTo(HaveOccurred())
-				})
-
-				It("returns the proper response", func() {
-					bindingResponse, err := Bind()
-					Expect(err).ToNot(HaveOccurred())
-					credentials := bindingResponse.Credentials.(*CredentialsHash)
-					Expect(credentials.Username).To(Equal("custom_user"))
-					Expect(credentials.Password).To(Equal(password))
-				})
-
-				It("makes the proper calls", func() {
-					_, err := Bind()
-					Expect(err).ToNot(HaveOccurred())
-					Expect(sqlEngine.CreateUserCalled).To(BeFalse())
-					Expect(sqlEngine.GrantPrivilegesCalled).To(BeFalse())
-				})
-
-				It("makes the proper database entries", func() {
-					_, err := Bind()
-					Expect(err).ToNot(HaveOccurred())
-					instance := internaldb.FindInstance(internalDB, instanceID)
-					Expect(instance).NotTo(BeNil())
-					// one Master, one Standard
-					Expect(instance.Users).To(HaveLen(2))
-					Expect(instance.User("custom_user").Bindings).To(HaveLen(2))
-				})
 			})
 		})
 
@@ -2244,7 +2150,7 @@ var _ = Describe("RDS Broker", func() {
 					Expect(credentials.Host).To(Equal("shared-endpoint"))
 					Expect(credentials.Port).To(Equal(int64(1234)))
 					Expect(credentials.Name).To(Equal(dbName))
-					Expect(credentials.Username).To(HaveSuffix("instance_id"))
+					Expect(credentials.Username).To(HavePrefix("u"))
 					Expect(credentials.Password).ToNot(BeEmpty())
 					Expect(credentials.Password).ToNot(Equal("master-password"))
 					Expect(credentials.URI).To(ContainSubstring("@shared-endpoint:1234/%s?reconnect=true", dbName))

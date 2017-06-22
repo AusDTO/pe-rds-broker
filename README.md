@@ -61,12 +61,8 @@ If you have multiple applications that need to bind to the same database (for in
 some things to consider. By default, each application bound to a database gets a different username and password.
 If you're using mysql, you can just bind all the apps to the database and it will work fine.
 Postgres, on the other hand, does not support granting full read-write access to all tables in a database to an
-arbitrary set of users. To get around this, you can bind all your applications to a postgres database with a custom
-username. This will give all your applications the same access permissions on the data. You can do this by running something like
-
-    cf bind-service APP_NAME SERVICE_INSTANCE -c '{"username":"awesome_user"}'
-
-_Note: user bind parameters must be enabled in the deployment configuration for this to work._
+arbitrary set of users, so instead this service broker will create a single username, shared by all applications that
+are bound to the same database.
 
 ### Database extensions
 

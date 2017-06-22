@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/AusDTO/pe-rds-broker/config"
+	"github.com/AusDTO/pe-rds-broker/utils"
 )
 
 type FakeSQLEngine struct {
@@ -129,4 +130,8 @@ func (f *FakeSQLEngine) JDBCURI(dbname string, username string, password string)
 
 func (d *FakeSQLEngine) Config() config.DBConfig {
 	return d.OpenConfig
+}
+
+func (d *FakeSQLEngine) CreateUsername(instanceid string) (string, error) {
+	return utils.RandUsername()
 }

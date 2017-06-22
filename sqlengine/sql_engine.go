@@ -16,4 +16,8 @@ type SQLEngine interface {
 	URI(dbname string, username string, password string) string
 	JDBCURI(dbname string, username string, password string) string
 	Config() config.DBConfig
+
+	// CreateUsername returns an appropriate username for an app to use for a given instance.
+	// Often this is random, but same databases need specific behaviour.
+	CreateUsername(instanceID string) (string, error)
 }
