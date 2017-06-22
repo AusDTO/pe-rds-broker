@@ -5,7 +5,6 @@ import (
 	"crypto/cipher"
 	"crypto/rand"
 	"encoding/base64"
-	"fmt"
 	"log"
 	"os"
 	"regexp"
@@ -87,33 +86,6 @@ func IsSimpleIdentifier(arg string) bool {
 
 func IsValidExtensionName(arg string) bool {
 	return regexp.MustCompile("^[[:alpha:]][-_[:alnum:]]*$").MatchString(arg)
-}
-
-// requestedUsername should have already been tested for validity
-func DBUsername(requestedUsername, instanceID, appID, engine string, shared bool) string {
-	var username string
-	// The custom username is only required to get around postgres permission issues. This is not a problem in mysql,
-	// mariadb or aurora. And because of mysql's username length limits, it's much easier to just always use a random
-	// 16 character password unless we actually need to do otherwise.
-	if strings.ToLower(engine) != "postgres" {
-		username, _ = RandUsername()
-		return username
-	}
-	if requestedUsername != "" {
-		username = requestedUsername
-	} else if appID != "" {
-		username = "u" + strings.Replace(appID, "-", "_", -1)
-	} else {
-		username, _ = RandUsername()
-	}
-	if shared {
-		username = fmt.Sprintf("%s_%s", username, strings.Replace(instanceID, "-", "_", -1))
-	}
-	// truncate to 63 characters
-	if len(username) > 63 {
-		username = username[:63]
-	}
-	return username
 }
 
 func BuildLogger(logLevel, component string) lager.Logger {

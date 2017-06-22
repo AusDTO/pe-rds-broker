@@ -8,6 +8,7 @@ import (
 
 	"code.cloudfoundry.org/lager"
 	"github.com/AusDTO/pe-rds-broker/config"
+	"github.com/AusDTO/pe-rds-broker/utils"
 )
 
 type MySQLEngine struct {
@@ -167,4 +168,8 @@ func (d *MySQLEngine) connectionString() string {
 
 func (d *MySQLEngine) Config() config.DBConfig {
 	return d.config
+}
+
+func (d *MySQLEngine) CreateUsername(instanceid string) (string, error) {
+	return utils.RandUsername()
 }

@@ -280,6 +280,18 @@ func (d *PostgresEngine) Config() config.DBConfig {
 	return d.config
 }
 
+func (d *PostgresEngine) CreateUsername(instanceID string) (string, error) {
+	// Always use the same username in for all bindings, else objects become inaccessible
+	username := "u" + strings.Replace(instanceID, "-", "_", -1)
+
+	// Check max len for pg
+	if len(username) > 63 {
+		username = username[:63]
+	}
+
+	return username, nil
+}
+
 // postgresQuoteValue will quote the given value and escape
 // any single-quote characters. If a null byte is present, it will
 // be truncated there before continuing.

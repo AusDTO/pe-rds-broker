@@ -16,7 +16,6 @@ import (
 	"github.com/AusDTO/pe-rds-broker/config"
 	"github.com/AusDTO/pe-rds-broker/internaldb"
 	"github.com/AusDTO/pe-rds-broker/sqlengine"
-	"github.com/AusDTO/pe-rds-broker/utils"
 )
 
 const instanceIDLogKey = "instance-id"
@@ -315,16 +314,6 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 
 	binding := brokerapi.Binding{}
 
-	bindParameters := BindParameters{}
-	if b.allowUserBindParameters && len(details.RawParameters) > 0 {
-		if err := json.Unmarshal(details.RawParameters, &bindParameters); err != nil {
-			return binding, err
-		}
-		if !utils.IsSimpleIdentifier(bindParameters.Username) {
-			return binding, errors.New("Username must begin with a letter and contain only alphanumeric characters")
-		}
-	}
-
 	instance, service, servicePlan, err := b.findObjects(instanceID)
 	if err != nil {
 		return binding, err
@@ -346,7 +335,11 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 		defer sqlEngine.Close()
 	}
 
-	username := utils.DBUsername(bindParameters.Username, instance.InstanceID, details.AppGUID, servicePlan.RDSProperties.Engine, servicePlan.RDSProperties.Shared)
+	username, err := sqlEngine.CreateUsername(instance.InstanceID)
+	if err != nil {
+		return binding, err
+	}
+
 	user, new, err := instance.Bind(b.internalDB, bindingID, username, internaldb.Standard, b.encryptionKey)
 	if err != nil {
 		return binding, err
