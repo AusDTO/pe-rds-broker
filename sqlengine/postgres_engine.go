@@ -212,7 +212,7 @@ func (d *PostgresEngine) SetExtensions(extensions []string) error {
 	for _, new := range extensions {
 		if new == "plpgsql" {
 			// plpgsql should always be enabled
-			break
+			continue
 		}
 		found = false
 		for _, old := range oldExtensions {
