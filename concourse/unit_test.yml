@@ -5,8 +5,5 @@ image_resource:
   type: docker-image
   source: {repository: golang, tag: "latest"}
 
-inputs:
-- name: rds
-
 run:
-  path: ./test.sh
+  path: echo $PWD; ./test.sh
