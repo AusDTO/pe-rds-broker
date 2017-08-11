@@ -9,7 +9,7 @@ image_resource:
 
 inputs:
 - name: pe-rds-broker
-  path: /go/src/github.com/AusDTO
+  path: go/src/github.com/AusDTO/pe-rds-broker
 
 run:
-  path: /go/src/github.com/AusDTO/pe-rds-broker/concourse/unit_test.sh
+  path: go/src/github.com/AusDTO/pe-rds-broker/concourse/unit_test.sh
