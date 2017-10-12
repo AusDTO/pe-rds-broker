@@ -1,9 +1,10 @@
 package main
 
 import (
-	"flag"
 	"log"
 	"net/http"
+
+	"github.com/govau/cf-common"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
@@ -31,25 +32,19 @@ var (
 	}
 )
 
-func init() {
-	flag.StringVar(&configFilePath, "config", "", "Location of the config file")
-	flag.StringVar(&port, "port", "3000", "Listen port")
-}
-
 func main() {
-	flag.Parse()
+	envVar := cfcommon.NewDefaultEnvLookup()
 
-	configYml, err := LoadConfig(configFilePath)
+	port := envVar.MustString("PORT")
+
+	configYml, err := LoadConfig(envVar, envVar.String("CONFIG_PATH", "config.yml"))
 	if err != nil {
 		log.Fatalf("Error loading config file: %s", err)
 	}
 
 	logger := utils.BuildLogger(configYml.LogLevel, "rds-broker")
 
-	envConfig, err := config.LoadEnvConfig()
-	if err != nil {
-		logger.Fatal("load-environment", err)
-	}
+	envConfig := config.MustLoadEnvConfig(envVar)
 
 	awsConfig := aws.NewConfig().WithRegion(configYml.RDSConfig.Region)
 	awsSession := session.New(awsConfig)

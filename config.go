@@ -9,6 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 
 	"github.com/AusDTO/pe-rds-broker/rdsbroker"
+	cfcommon "github.com/govau/cf-common"
 )
 
 type Config struct {
@@ -16,11 +17,7 @@ type Config struct {
 	RDSConfig rdsbroker.Config `yaml:"rds_config"`
 }
 
-func LoadConfig(configFile string) (config *Config, err error) {
-	if configFile == "" {
-		return config, errors.New("Must provide a config file")
-	}
-
+func LoadConfig(envVars *cfcommon.EnvVars, configFile string) (config *Config, err error) {
 	file, err := os.Open(configFile)
 	if err != nil {
 		return config, err
@@ -34,6 +31,15 @@ func LoadConfig(configFile string) (config *Config, err error) {
 
 	if err = yaml.Unmarshal(bytes, &config); err != nil {
 		return config, err
+	}
+
+	config.RDSConfig.DBPrefix = envVars.MustString("DB_PREFIX")
+	for _, service := range config.RDSConfig.Catalog.Services {
+		for _, sp := range service.Plans {
+			sp.RDSProperties.MultiAZ = envVars.Bool("DB_MULTI_AZ")
+			sp.RDSProperties.DBSubnetGroupName = envVars.MustString("DB_RDS_SUBNET_GROUP_NAME")
+			sp.RDSProperties.DBSecurityGroups = []string{envVars.MustString(fmt.Sprintf("DB_RDS_SECURITY_GROUP_%s", sp.RDSProperties.Engine))}
+		}
 	}
 
 	if err = config.Validate(); err != nil {

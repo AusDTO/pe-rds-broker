@@ -1,12 +1,12 @@
-hash: b9e2bf5da0fb47e1146f7ce7ec12ee6407bc9e2add26c95ab3eb284d725e9656
-updated: 2017-02-23T10:14:05.535202037+11:00
+hash: 2b5df97a1876aad395f71f6b824767ab4b48f45c4ad2a6b1abb46b15f3c24c49
+updated: 2017-10-12T16:39:06.242680347+11:00
 imports:
 - name: code.cloudfoundry.org/lager
   version: 62951a8009ab331bb21dc418074fa54e66eb9b6a
   subpackages:
   - lagertest
 - name: github.com/aws/aws-sdk-go
-  version: 00fb2125993965df739fa3398b03bef3eb2e198f
+  version: 64850c09d35fc1dc005ca76c13fed9382e34e7e3
   subpackages:
   - aws
   - aws/awserr
@@ -24,6 +24,7 @@ imports:
   - aws/request
   - aws/session
   - aws/signer/v4
+  - internal/shareddefaults
   - private/endpoints
   - private/protocol
   - private/protocol/query
@@ -31,10 +32,13 @@ imports:
   - private/protocol/rest
   - private/protocol/xml/xmlutil
   - private/signer/v4
-  - private/waiter
   - service/iam
   - service/rds
   - service/sts
+- name: github.com/cloudfoundry-community/go-cfenv
+  version: 96ad7376813bfd13c95af69ca5b4ef5725f6b335
+- name: github.com/dgrijalva/jwt-go
+  version: d2709f9f1f31ebcda9651b03077758c1f3a0018c
 - name: github.com/go-ini/ini
   version: 6f66b0e091edb3c7b380f7c4f0f884274d550b67
 - name: github.com/go-sql-driver/mysql
@@ -43,6 +47,8 @@ imports:
   version: 215affda49addc4c8ef7e2534915df2c8c35c6cd
 - name: github.com/gorilla/mux
   version: cf79e51a62d8219d52060dfc1b4e810414ba2d15
+- name: github.com/govau/cf-common
+  version: 5f01aed20a91826c31a6ffea6798e9b8a47ecc2e
 - name: github.com/jinzhu/gorm
   version: 7fb9b62c17d90320e0582a4720db025c1652fd6a
   subpackages:

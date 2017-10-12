@@ -1,0 +1,154 @@
+---
+log_level: INFO
+rds_config:
+  region: ap-southeast-2
+  db_prefix: TODO
+  allow_user_provision_parameters: true
+  allow_user_update_parameters: true
+  allow_user_bind_parameters: true
+  catalog:
+    services:
+    - id: 39F8C4E7-8ACF-4A0A-AA08-54D29256E1D1
+      name: postgres
+      description: "RDS postgres database service"
+      bindable: true
+      tags:
+      - relational
+      - postgres
+      metadata:
+        displayName: "RDS postgres database service"
+        longDescription: "create and manage postgres RDS databases on AWS"
+        providerDisplayName: Amazon Web Services
+        documentationUrl: https://github.com/AusDTO/pe-rds-broker
+        supportUrl: https://github.com/AusDTO/pe-rds-broker/issues
+      plan_updateable: true
+      plans:
+      - id: 41383209-0640-4004-83A9-0F348EA0BF83
+        name: shared
+        description: RDS PostgreSQL on a shared instance
+        metadata:
+          bullets:
+          - Shared PostgreSQL service
+          - AWS RDS
+        free: true
+        rds_properties:
+          shared: true
+          engine: postgres
+      - id: D9C5814A-5814-40DD-8F1E-1DE615A47CC5
+        name: 9.6-5G
+        description: RDS PostgreSQL 9.6 (db.t2.micro, 5G)
+        metadata:
+          bullets:
+          - Dedicated PostgreSQL 9.6 server
+          - PostgreSQL 9.6
+          - AWS RDS
+          - 5G storage
+        free: false
+        rds_properties:
+          multi_az: false
+          db_instance_class: db.t2.micro
+          engine: postgres
+          engine_version: 9.6.1
+          allocated_storage: 5
+          auto_minor_version_upgrade: true
+          publicly_accessible: false
+          copy_tags_to_snapshot: true
+          vpc_security_group_ids:
+            - TODO
+          db_subnet_group_name: TODO
+          skip_final_snapshot: false
+      - id: CD266C61-7B39-43DA-96DA-5383F492121B
+        name: 9.6-20G
+        description: RDS PostgreSQL 9.6 (db.t2.micro, 20G)
+        metadata:
+          bullets:
+          - Dedicated PostgreSQL 9.6 server
+          - PostgreSQL 9.6
+          - AWS RDS
+          - 20G storage
+        free: false
+        rds_properties:
+          multi_az: false
+          db_instance_class: db.t2.micro
+          engine: postgres
+          engine_version: 9.6.1
+          allocated_storage: 20
+          auto_minor_version_upgrade: true
+          publicly_accessible: false
+          copy_tags_to_snapshot: true
+          vpc_security_group_ids:
+            - TODO
+          db_subnet_group_name: TODO
+          skip_final_snapshot: false
+    - id: 8ACBDD65-6E6E-4BA5-96D5-2B1B34B6EB44
+      name: mysql
+      description: "RDS mysql database service"
+      bindable: true
+      tags:
+      - relational
+      - mysql
+      metadata:
+        displayName: "RDS mysql database service"
+        longDescription: "create and manage mysql RDS databases on AWS"
+        providerDisplayName: Amazon Web Services
+        documentationUrl: https://github.com/AusDTO/pe-rds-broker
+        supportUrl: https://github.com/AusDTO/pe-rds-broker/issues
+      plan_updateable: true
+      plans:
+      - id: 0257AB77-2EFE-4544-B8EC-1DCEFE263E74
+        name: shared
+        description: RDS MySQL service on a shared instance
+        metadata:
+          bullets:
+          - Shared MySQL service
+          - AWS RDS
+        free: true
+        rds_properties:
+          shared: true
+          engine: mysql
+      - id: E18A509D-2302-47F2-A406-8641964F251D
+        name: 5.7-5G
+        description: RDS MySQL 5.7 (db.t2.micro, 5G)
+        metadata:
+          bullets:
+          - Dedicated MySQL 5.7 server
+          - MySQL 5.7
+          - AWS RDS
+          - 5G storage
+        free: false
+        rds_properties:
+          multi_az: false
+          db_instance_class: db.t2.micro
+          engine: MySQL
+          engine_version: 5.7.16
+          allocated_storage: 5
+          auto_minor_version_upgrade: true
+          publicly_accessible: false
+          copy_tags_to_snapshot: true
+          vpc_security_group_ids:
+            - TODO
+          db_subnet_group_name: TODO
+          skip_final_snapshot: false
+      - id: F9717F08-9069-49D8-88B8-CD6E77198F3D
+        name: 5.7-20G
+        description: RDS MySQL 5.7 (db.t2.micro, 20G)
+        metadata:
+          bullets:
+          - Dedicated MySQL 5.7 server
+          - MySQL 5.7
+          - AWS RDS
+          - 20G storage
+        free: false
+        rds_properties:
+          multi_az: false
+          db_instance_class: db.t2.micro
+          engine: MySQL
+          engine_version: 5.7.16
+          allocated_storage: 20
+          auto_minor_version_upgrade: true
+          publicly_accessible: false
+          copy_tags_to_snapshot: true
+          vpc_security_group_ids:
+            - TODO
+          db_subnet_group_name: TODO
+          skip_final_snapshot: false

@@ -1,11 +1,11 @@
 package config
 
 import (
-	"encoding/hex"
 	"errors"
 	"fmt"
-	"os"
 	"strconv"
+
+	cfcommon "github.com/govau/cf-common"
 )
 
 type SSLMode string
@@ -39,59 +39,38 @@ type EnvConfig struct {
 	SharedMysqlDBConfig    *DBConfig
 }
 
-func LoadEnvConfig() (*EnvConfig, error) {
-	var config EnvConfig
-	var err error
-	config.Username = os.Getenv("RDSBROKER_USERNAME")
-	if config.Username == "" {
-		return &config, errors.New("Must provide a non-empty username")
+func MustLoadEnvConfig(envVars *cfcommon.EnvVars) *EnvConfig {
+	config := &EnvConfig{
+		Username:      envVars.MustString("RDSBROKER_USERNAME"),
+		Password:      envVars.MustString("RDSBROKER_PASSWORD"),
+		EncryptionKey: envVars.MustHexEncodedByteArray("RDSBROKER_ENCRYPTION_KEY", 32),
+
+		SharedPostgresDBConfig: mustLoadDBConfig(envVars, "SHARED_POSTGRES", 5432),
+		SharedMysqlDBConfig:    mustLoadDBConfig(envVars, "SHARED_MYSQL", 3306),
+
+		InternalDBConfig: mustLoadDBConfig(envVars, "INTERNAL", 5432),
 	}
-	config.Password = os.Getenv("RDSBROKER_PASSWORD")
-	if config.Password == "" {
-		return &config, errors.New("Must provide a non-empty password")
-	}
-	config.SharedPostgresDBConfig, err = loadDBEnvConfig("SHARED_POSTGRES", 5432)
-	if err != nil {
-		return &config, err
-	}
-	config.SharedMysqlDBConfig, err = loadDBEnvConfig("SHARED_MYSQL", 3306)
-	if err != nil {
-		return &config, err
-	}
-	config.InternalDBConfig, err = loadDBEnvConfig("INTERNAL", 5432)
-	if err != nil {
-		return &config, err
-	}
-	config.InternalDBConfig.DBType = os.Getenv("RDSBROKER_INTERNAL_DB_PROVIDER")
+
+	config.InternalDBConfig.DBType = envVars.MustString("RDSBROKER_INTERNAL_DB_PROVIDER")
 	if config.InternalDBConfig.DBType != "postgres" && config.InternalDBConfig.DBType != "sqlite3" {
-		return &config, errors.New("Unknown internal DB provider")
+		panic(errors.New("Unknown internal DB provider"))
 	}
-	config.EncryptionKey, err = hex.DecodeString(os.Getenv("RDSBROKER_ENCRYPTION_KEY"))
-	if err != nil {
-		return &config, fmt.Errorf("Failed to parse RDSBROKER_ENCRYPTION_KEY: %s", err)
-	}
-	if len(config.EncryptionKey) != 32 {
-		return &config, errors.New("RDSBROKER_ENCRYPTION_KEY must be a hex-encoded 256-bit key")
-	}
-	return &config, nil
+
+	return config
 }
 
-func loadDBEnvConfig(version string, defaultPort int64) (*DBConfig, error) {
-	var dbconfig DBConfig
-	var err error
-	dbconfig.DBName = os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_NAME", version))
-	dbconfig.Username = os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_USERNAME", version))
-	dbconfig.Password = os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_PASSWORD", version))
-	dbconfig.Url = os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_URL", version))
-	dbconfig.Sslmode = SSLMode(os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_SSLMODE", version)))
-	port_str := os.Getenv(fmt.Sprintf("RDSBROKER_%s_DB_PORT", version))
-	if port_str != "" {
-		dbconfig.Port, err = strconv.ParseInt(port_str, 0, 64)
-		if err != nil {
-			return &dbconfig, errors.New(fmt.Sprintf("Invalid port in environment variable RDSBROKER_%s_DB_PORT", version))
-		}
-	} else {
-		dbconfig.Port = defaultPort
+func mustLoadDBConfig(envVar *cfcommon.EnvVars, version string, defaultPort int) *DBConfig {
+	port, err := strconv.Atoi(envVar.String(fmt.Sprintf("RDSBROKER_%s_DB_PORT", version), strconv.Itoa(defaultPort)))
+	if err != nil {
+		panic(err)
 	}
-	return &dbconfig, nil
+
+	return &DBConfig{
+		DBName:   envVar.MustString(fmt.Sprintf("RDSBROKER_%s_DB_NAME", version)),
+		Url:      envVar.MustString(fmt.Sprintf("RDSBROKER_%s_DB_URL", version)),
+		Port:     int64(port),
+		Sslmode:  SSLMode(envVar.String(fmt.Sprintf("RDSBROKER_%s_DB_SSLMODE", version), "")),
+		Username: envVar.MustString(fmt.Sprintf("RDSBROKER_%s_DB_USERNAME", version)),
+		Password: envVar.MustString(fmt.Sprintf("RDSBROKER_%s_DB_PASSWORD", version)),
+	}
 }
