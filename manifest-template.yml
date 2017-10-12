@@ -1,0 +1,9 @@
+---
+buildpack: binary_buildpack
+memory: 256M
+services:
+- rds-broker-ups
+applications:
+- name: rds-broker
+env:
+  UPS_PATH: rds-broker-ups
