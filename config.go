@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 
 	"gopkg.in/yaml.v2"
 
@@ -38,7 +39,7 @@ func LoadConfig(envVars *cfcommon.EnvVars, configFile string) (config *Config, e
 		for _, sp := range service.Plans {
 			sp.RDSProperties.MultiAZ = envVars.Bool("DB_MULTI_AZ")
 			sp.RDSProperties.DBSubnetGroupName = envVars.MustString("DB_RDS_SUBNET_GROUP_NAME")
-			sp.RDSProperties.DBSecurityGroups = []string{envVars.MustString(fmt.Sprintf("DB_RDS_SECURITY_GROUP_%s", strings.ToUpper(sp.RDSProperties.Engine))}
+			sp.RDSProperties.DBSecurityGroups = []string{envVars.MustString(fmt.Sprintf("DB_RDS_SECURITY_GROUP_%s", strings.ToUpper(sp.RDSProperties.Engine)))}
 		}
 	}
 
