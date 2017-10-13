@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 
@@ -34,9 +33,6 @@ var (
 )
 
 func main() {
-	fmt.Println("Helloworldstout")
-	log.Println("Helloworldstderr")
-	return
 	envVar := cfcommon.NewDefaultEnvLookup()
 
 	port := envVar.MustString("PORT")
