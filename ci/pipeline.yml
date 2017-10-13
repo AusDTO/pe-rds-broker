@@ -27,7 +27,6 @@ resources:
   source:
     uri: git@github.com:AusDTO/pe-rds-broker.git
     branch: master
-    private_key: ((private-repo-key))
 - name: g-cf
   type: cf
   source:
