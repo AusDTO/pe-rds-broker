@@ -1,1 +1,1 @@
-web: pe-rds-broker --config=config.yml -port=$PORT
+web: pe-rds-broker

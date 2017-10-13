@@ -1,6 +1,7 @@
 package main_test
 
 import (
+	cfcommon "github.com/govau/cf-common"
 	. "github.com/onsi/ginkgo"
 	. "github.com/onsi/gomega"
 
@@ -58,11 +59,11 @@ var _ = Describe("Config", func() {
 		)
 
 		It("parses sample config", func() {
-			Expect(LoadConfig(configFile)).NotTo(BeZero())
+			Expect(LoadConfig(cfcommon.NewDefaultEnvLookup(), configFile)).NotTo(BeZero())
 		})
 
 		It("parses all information in sample config", func() {
-			config, err := LoadConfig(configFile)
+			config, err := LoadConfig(cfcommon.NewDefaultEnvLookup(), configFile)
 			Expect(err).NotTo(HaveOccurred())
 			configStr, err := ioutil.ReadFile(configFile)
 			Expect(err).NotTo(HaveOccurred())
