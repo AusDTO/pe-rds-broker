@@ -31,4 +31,5 @@ cp -R \
         "${ORIG_PWD}/src/pe-rds-broker" \
         "${ORIG_PWD}/src/manifest-template.yml" \
         "${ORIG_PWD}/src/Procfile" \
+        "${ORIG_PWD}/src/config-govau.yml" \
     "${ORIG_PWD}/build"

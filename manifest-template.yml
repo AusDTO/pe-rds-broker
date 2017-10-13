@@ -7,3 +7,4 @@ applications:
 - name: rds-broker
 env:
   UPS_PATH: rds-broker-ups
+  CONFIG_PATH: config-govau.yml

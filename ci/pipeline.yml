@@ -6,7 +6,7 @@ jobs:
   - get: src
     trigger: true
   - task: run-tests
-     file: src/ci/tests.yml
+    file: src/ci/tests.yml
   - aggregate:
     - do:
       - task: prepare-manifest
@@ -25,7 +25,7 @@ resources:
 - name: src
   type: git
   source:
-    uri: git@github.com:AusDTO/pe-rds-broker.git
+    uri: https://github.com/AusDTO/pe-rds-broker
     branch: master
 - name: g-cf
   type: cf
