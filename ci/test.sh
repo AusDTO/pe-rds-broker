@@ -27,12 +27,14 @@ go build
 #go test $(go list ./... | grep -v "/vendor/")
 
 # Copy artefacts to output directory
-cp -R \
-        "${ORIG_PWD}/src/pe-rds-broker" \
+cp \
         "${ORIG_PWD}/src/manifest-template.yml" \
         "${ORIG_PWD}/src/Procfile" \
         "${ORIG_PWD}/src/config-govau.yml" \
     "${ORIG_PWD}/build"
+
+cp "${ORIG_PWD}/src/pe-rds-broker" \
+   "${ORIG_PWD}/build/rds-broker"
 
 echo "Files in build:"
 ls -l "${ORIG_PWD}/build"
