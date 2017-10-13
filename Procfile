@@ -1,1 +1,1 @@
-web: ./pe-rds-broker
+web: ./rds-broker
