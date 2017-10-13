@@ -33,3 +33,6 @@ cp -R \
         "${ORIG_PWD}/src/Procfile" \
         "${ORIG_PWD}/src/config-govau.yml" \
     "${ORIG_PWD}/build"
+
+echo "Files in build:"
+ls -l "${ORIG_PWD}/build"
