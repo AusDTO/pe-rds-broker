@@ -12,6 +12,30 @@ jobs:
       - task: prepare-manifest
         file: src/ci/prepare-manifest.yml
         input_mapping: {ci: src}
+        output_mapping: {result: b-manifest}
+        params:
+          DOMAIN: system.b.cld.gov.au
+      - put: b-cf
+        params:
+          manifest: b-manifest/manifest.yml
+          path: build
+          current_app_name: rds-broker
+    - do:
+      - task: prepare-manifest
+        file: src/ci/prepare-manifest.yml
+        input_mapping: {ci: src}
+        output_mapping: {result: d-manifest}
+        params:
+          DOMAIN: system.d.cld.gov.au
+      - put: d-cf
+        params:
+          manifest: d-manifest/manifest.yml
+          path: build
+          current_app_name: rds-broker
+    - do:
+      - task: prepare-manifest
+        file: src/ci/prepare-manifest.yml
+        input_mapping: {ci: src}
         output_mapping: {result: g-manifest}
         params:
           DOMAIN: system.g.cld.gov.au
@@ -20,6 +44,19 @@ jobs:
           manifest: g-manifest/manifest.yml
           path: build
           current_app_name: rds-broker
+    - do:
+      - task: prepare-manifest
+        file: src/ci/prepare-manifest.yml
+        input_mapping: {ci: src}
+        output_mapping: {result: y-manifest}
+        params:
+          DOMAIN: system.y.cld.gov.au
+      - put: y-cf
+        params:
+          manifest: y-manifest/manifest.yml
+          path: build
+          current_app_name: rds-broker
+    # z is a deliberate omission
 
 resources:
 - name: src
@@ -27,6 +64,22 @@ resources:
   source:
     uri: https://github.com/AusDTO/pe-rds-broker
     branch: master
+- name: b-cf
+  type: cf
+  source:
+    api: https://api.system.b.cld.gov.au
+    username: ci-system-rds-broker
+    password: ((b-password))
+    organization: system
+    space: rds-broker
+- name: d-cf
+  type: cf
+  source:
+    api: https://api.system.d.cld.gov.au
+    username: ci-system-rds-broker
+    password: ((d-password))
+    organization: system
+    space: rds-broker
 - name: g-cf
   type: cf
   source:
@@ -35,3 +88,12 @@ resources:
     password: ((g-password))
     organization: system
     space: rds-broker
+- name: y-cf
+  type: cf
+  source:
+    api: https://api.system.y.cld.gov.au
+    username: ci-system-rds-broker
+    password: ((y-password))
+    organization: system
+    space: rds-broker
+# z is a deliberate omission
