@@ -1,25 +1,19 @@
 ---
 jobs:
-- name: rds-broker
+- name: rds-broker-dg
   serial: true
   plan:
   - get: src
     trigger: true
   - task: run-tests
     file: src/ci/tests.yml
+    on_failure:
+      put: slack
+      params:
+        text: |
+          :x: $BUILD_JOB_NAME FAILED
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
   - aggregate:
-    - do:
-      - task: prepare-manifest
-        file: src/ci/prepare-manifest.yml
-        input_mapping: {ci: src}
-        output_mapping: {result: b-manifest}
-        params:
-          DOMAIN: system.b.cld.gov.au
-      - put: b-cf
-        params:
-          manifest: b-manifest/manifest.yml
-          path: build
-          current_app_name: rds-broker
     - do:
       - task: prepare-manifest
         file: src/ci/prepare-manifest.yml
@@ -27,11 +21,23 @@ jobs:
         output_mapping: {result: d-manifest}
         params:
           DOMAIN: system.d.cld.gov.au
+        on_failure:
+          put: slack
+          params:
+            text: |
+              :x: $BUILD_JOB_NAME FAILED
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
       - put: d-cf
         params:
           manifest: d-manifest/manifest.yml
           path: build
           current_app_name: rds-broker
+        on_failure:
+          put: slack
+          params:
+            text: |
+              :x: $BUILD_JOB_NAME FAILED
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
     - do:
       - task: prepare-manifest
         file: src/ci/prepare-manifest.yml
@@ -39,24 +45,114 @@ jobs:
         output_mapping: {result: g-manifest}
         params:
           DOMAIN: system.g.cld.gov.au
+        on_failure:
+          put: slack
+          params:
+            text: |
+              :x: $BUILD_JOB_NAME FAILED
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
       - put: g-cf
         params:
           manifest: g-manifest/manifest.yml
           path: build
           current_app_name: rds-broker
-    - do:
-      - task: prepare-manifest
-        file: src/ci/prepare-manifest.yml
-        input_mapping: {ci: src}
-        output_mapping: {result: y-manifest}
-        params:
-          DOMAIN: system.y.cld.gov.au
-      - put: y-cf
-        params:
-          manifest: y-manifest/manifest.yml
-          path: build
-          current_app_name: rds-broker
-    # z is a deliberate omission
+        on_failure:
+          put: slack
+          params:
+            text: |
+              :x: $BUILD_JOB_NAME FAILED
+              <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+  - put: slack
+    params:
+      text: |
+        :white_check_mark: $BUILD_JOB_NAME SUCCESS
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+
+- name: rds-broker-y
+  serial: true
+  plan:
+  - get: src
+    passed:
+    - rds-broker-dg
+  - task: run-tests
+    file: src/ci/tests.yml
+    on_failure:
+      put: slack
+      params:
+        text: |
+          :x: $BUILD_JOB_NAME FAILED
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+  - task: prepare-manifest
+    file: src/ci/prepare-manifest.yml
+    input_mapping: {ci: src}
+    output_mapping: {result: y-manifest}
+    params:
+      DOMAIN: system.y.cld.gov.au
+    on_failure:
+      put: slack
+      params:
+        text: |
+          :x: $BUILD_JOB_NAME FAILED
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+  - put: y-cf
+    params:
+      manifest: y-manifest/manifest.yml
+      path: build
+      current_app_name: rds-broker
+    on_failure:
+      put: slack
+      params:
+        text: |
+          :x: $BUILD_JOB_NAME FAILED
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+  - put: slack
+    params:
+      text: |
+        :white_check_mark: $BUILD_JOB_NAME SUCCESS
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+
+- name: rds-broker-b
+  serial: true
+  plan:
+  - get: src
+    passed:
+    - rds-broker-y
+  - task: run-tests
+    file: src/ci/tests.yml
+    on_failure:
+      put: slack
+      params:
+        text: |
+          :x: $BUILD_JOB_NAME FAILED
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+  - task: prepare-manifest
+    file: src/ci/prepare-manifest.yml
+    input_mapping: {ci: src}
+    output_mapping: {result: b-manifest}
+    params:
+      DOMAIN: system.b.cld.gov.au
+    on_failure:
+      put: slack
+      params:
+        text: |
+          :x: $BUILD_JOB_NAME FAILED
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+  - put: b-cf
+    params:
+      manifest: b-manifest/manifest.yml
+      path: build
+      current_app_name: rds-broker
+    on_failure:
+      put: slack
+      params:
+        text: |
+          :x: $BUILD_JOB_NAME FAILED
+          <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
+  - put: slack
+    params:
+      text: |
+        :white_check_mark: $BUILD_JOB_NAME SUCCESS
+        <$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME|View build details>
 
 resources:
 - name: src
@@ -97,3 +193,14 @@ resources:
     organization: system
     space: rds-broker
 # z is a deliberate omission
+
+- name: slack
+  type: slack-notification
+  source:
+    url: ((slack-webhook-url))
+
+resource_types:
+- name: slack-notification
+  type: docker-image
+  source:
+    repository: cfcommunity/slack-notification-resource
