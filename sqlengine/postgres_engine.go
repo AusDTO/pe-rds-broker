@@ -237,9 +237,6 @@ func (d *PostgresEngine) URI(dbname string, username string, password string) st
 		User:   url.UserPassword(username, password),
 		Host:   fmt.Sprintf("%s:%d", d.config.Url, d.config.Port),
 		Path:   fmt.Sprintf("/%s", url.QueryEscape(dbname)), // TODO: should be url.PathEscape() - not present in targeted version of Go.
-		RawQuery: (&url.Values{
-			"reconnect": []string{"true"}, // TODO - why are we setting this?
-		}).Encode(),
 	}).String()
 }
 
