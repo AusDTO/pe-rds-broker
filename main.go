@@ -4,10 +4,11 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/govau/cf-common"
+	cfcommon "github.com/govau/cf-common"
 
 	"code.cloudfoundry.org/lager"
 	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/credentials"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/rds"
 	"github.com/pivotal-cf/brokerapi"
@@ -46,7 +47,12 @@ func main() {
 
 	envConfig := config.MustLoadEnvConfig(envVar)
 
-	awsConfig := aws.NewConfig().WithRegion(configYml.RDSConfig.Region)
+	awsConfig := aws.NewConfig().WithRegion(configYml.RDSConfig.Region).WithCredentials(
+		credentials.NewStaticCredentials(
+			envVar.MustString("AWS_ACCESS_KEY_ID"),
+			envVar.MustString("AWS_SECRET_ACCESS_KEY"),
+		),
+	)
 	awsSession := session.New(awsConfig)
 
 	rdssvc := rds.New(awsSession)
