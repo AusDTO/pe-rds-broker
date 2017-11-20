@@ -51,6 +51,7 @@ func main() {
 		credentials.NewStaticCredentials(
 			envVar.MustString("AWS_ACCESS_KEY_ID"),
 			envVar.MustString("AWS_SECRET_ACCESS_KEY"),
+			"",
 		),
 	)
 	awsSession := session.New(awsConfig)
