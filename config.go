@@ -39,7 +39,7 @@ func LoadConfig(envVars *cfcommon.EnvVars, configFile string) (config *Config, e
 		for idx, sp := range service.Plans {
 			sp.RDSProperties.MultiAZ = envVars.Bool("DB_MULTI_AZ")
 			sp.RDSProperties.DBSubnetGroupName = envVars.MustString("DB_RDS_SUBNET_GROUP_NAME")
-			sp.RDSProperties.DBSecurityGroups = []string{envVars.MustString(fmt.Sprintf("DB_RDS_SECURITY_GROUP_%s", strings.ToUpper(sp.RDSProperties.Engine)))}
+			sp.RDSProperties.VpcSecurityGroupIds = []string{envVars.MustString(fmt.Sprintf("DB_RDS_SECURITY_GROUP_%s", strings.ToUpper(sp.RDSProperties.Engine)))}
 
 			// Note, since this is a slice of structs, not struct pointers, we need to explicit set it after making changes
 			service.Plans[idx] = sp
