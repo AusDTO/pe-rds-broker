@@ -1,4 +1,4 @@
-# AWS RDS Service Broker [![CircleCI](https://circleci.com/gh/AusDTO/pe-rds-broker.svg?style=svg)](https://circleci.com/gh/AusDTO/pe-rds-broker)
+# AWS RDS Service Broker
 
 The RDS broker is a [cloud foundry service broker](https://docs.cloudfoundry.org/services/overview.html) originally based on
 [cloudfoundry-community/pe-rds-broker](https://github.com/cloudfoundry-community/pe-rds-broker).
