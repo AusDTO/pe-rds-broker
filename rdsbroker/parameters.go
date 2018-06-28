@@ -32,4 +32,8 @@ type CredentialsHash struct {
 	Password string `json:"password,omitempty"`
 	URI      string `json:"uri,omitempty"`
 	JDBCURI  string `json:"jdbcUrl,omitempty"`
+
+	// Some apps expect these alternate names, I'm looking at you Stratos: https://github.com/cloudfoundry-incubator/stratos/blob/v2-master/deploy/cloud-foundry/db-migration/README.md#note-on-service-bindings
+	Hostname string `json:"hostname,omitempty"`
+	DBName   string `json:"dbname,omitempty"`
 }

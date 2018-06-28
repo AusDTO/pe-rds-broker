@@ -368,6 +368,10 @@ func (b *RDSBroker) Bind(context context.Context, instanceID, bindingID string, 
 		Password: userPassword,
 		URI:      sqlEngine.URI(instance.DBName, user.Username, userPassword),
 		JDBCURI:  sqlEngine.JDBCURI(instance.DBName, user.Username, userPassword),
+
+		// Alternate names for some applications (e.g. stratos)
+		Hostname: sqlEngine.Config().Url,
+		DBName:   instance.DBName,
 	}
 
 	return binding, nil
